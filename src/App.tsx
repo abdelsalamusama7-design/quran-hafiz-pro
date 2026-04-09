@@ -4,12 +4,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AudioProvider } from "@/contexts/AudioContext";
 import BottomNav from "@/components/BottomNav";
+import AudioPlayer from "@/components/AudioPlayer";
 import Index from "./pages/Index";
 import QuranPage from "./pages/QuranPage";
 import SurahViewPage from "./pages/SurahViewPage";
 import ProgressPage from "./pages/ProgressPage";
 import SettingsPage from "./pages/SettingsPage";
+import QuizPage from "./pages/QuizPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,19 +21,23 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <LanguageProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/quran" element={<QuranPage />} />
-            <Route path="/surah/:id" element={<SurahViewPage />} />
-            <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <BottomNav />
-        </BrowserRouter>
+        <AudioProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/quran" element={<QuranPage />} />
+              <Route path="/surah/:id" element={<SurahViewPage />} />
+              <Route path="/progress" element={<ProgressPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/quiz" element={<QuizPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <AudioPlayer />
+            <BottomNav />
+          </BrowserRouter>
+        </AudioProvider>
       </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
