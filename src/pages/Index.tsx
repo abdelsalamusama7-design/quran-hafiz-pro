@@ -4,7 +4,7 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Map } from 'lucide-react';
 
 const HomePage = () => {
   const { t } = useLanguage();
@@ -12,11 +12,11 @@ const HomePage = () => {
 
   const quickActions = [
     { icon: BookOpen, label: t('continueMemorizing'), action: () => navigate('/quran'), color: 'bg-primary text-primary-foreground' },
-    { icon: Mic, label: t('tajweed'), action: () => {}, color: 'bg-accent text-accent-foreground' },
+    { icon: HelpCircle, label: t('quiz'), action: () => navigate('/quiz'), color: 'bg-accent text-accent-foreground' },
     { icon: GraduationCap, label: t('review'), action: () => navigate('/progress'), color: 'bg-secondary text-secondary-foreground' },
   ];
 
-  const recentSurahs = surahs.filter(s => [1, 112, 113, 114, 36, 67].includes(s.id));
+  const recentSurahs = surahs.filter(s => [1, 36, 55, 67, 112, 114].includes(s.id));
 
   return (
     <div className="pb-20 px-4 pt-6 max-w-lg mx-auto space-y-6">
@@ -37,7 +37,10 @@ const HomePage = () => {
       </div>
 
       <div>
-        <h2 className="font-semibold text-foreground mb-3 font-arabic">{t('surahs')}</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-foreground font-arabic">{t('popularSurahs')}</h2>
+          <button onClick={() => navigate('/quran')} className="text-xs text-primary font-medium">{t('allSurahs')} →</button>
+        </div>
         <div className="space-y-2">
           {recentSurahs.map(surah => (
             <SurahCard key={surah.id} surah={surah} />
