@@ -35,6 +35,11 @@ const BottomNav = () => {
           );
         })}
       </div>
+      <div className="text-center py-1.5 border-t border-border/50">
+        <p className="text-[9px] text-muted-foreground leading-tight">
+          تنفيذ وتصميم <span className="font-semibold text-primary/70">insta-tech lab</span> : Eng Abdelsalam Usama : <span dir="ltr">01227080430</span>
+        </p>
+      </div>
     </nav>
   );
 };
