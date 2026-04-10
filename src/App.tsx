@@ -13,6 +13,10 @@ import SurahViewPage from "./pages/SurahViewPage";
 import ProgressPage from "./pages/ProgressPage";
 import SettingsPage from "./pages/SettingsPage";
 import QuizPage from "./pages/QuizPage";
+import RecitationPage from "./pages/RecitationPage";
+import TajweedPage from "./pages/TajweedPage";
+import BadgesPage from "./pages/BadgesPage";
+import DailyWirdPage from "./pages/DailyWirdPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +36,10 @@ const App = () => (
               <Route path="/progress" element={<ProgressPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/quiz" element={<QuizPage />} />
+              <Route path="/recitation" element={<RecitationPage />} />
+              <Route path="/tajweed" element={<TajweedPage />} />
+              <Route path="/badges" element={<BadgesPage />} />
+              <Route path="/daily-wird" element={<DailyWirdPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />

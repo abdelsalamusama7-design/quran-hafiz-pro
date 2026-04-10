@@ -4,22 +4,25 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Map } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck } from 'lucide-react';
 
 const HomePage = () => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const navigate = useNavigate();
 
   const quickActions = [
     { icon: BookOpen, label: t('continueMemorizing'), action: () => navigate('/quran'), color: 'bg-primary text-primary-foreground' },
     { icon: HelpCircle, label: t('quiz'), action: () => navigate('/quiz'), color: 'bg-accent text-accent-foreground' },
-    { icon: GraduationCap, label: t('review'), action: () => navigate('/progress'), color: 'bg-secondary text-secondary-foreground' },
+    { icon: Mic, label: lang === 'ar' ? 'تصحيح التلاوة' : 'Recitation', action: () => navigate('/recitation'), color: 'bg-secondary text-secondary-foreground' },
+    { icon: GraduationCap, label: lang === 'ar' ? 'التجويد' : 'Tajweed', action: () => navigate('/tajweed'), color: 'bg-primary text-primary-foreground' },
+    { icon: Trophy, label: lang === 'ar' ? 'الإنجازات' : 'Badges', action: () => navigate('/badges'), color: 'bg-accent text-accent-foreground' },
+    { icon: BookCheck, label: lang === 'ar' ? 'الورد اليومي' : 'Daily Wird', action: () => navigate('/daily-wird'), color: 'bg-secondary text-secondary-foreground' },
   ];
 
   const recentSurahs = surahs.filter(s => [1, 36, 55, 67, 112, 114].includes(s.id));
 
   return (
-    <div className="pb-20 px-4 pt-6 max-w-lg mx-auto space-y-6">
+    <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-6">
       <IslamicHeader />
       <StatsCards />
 
