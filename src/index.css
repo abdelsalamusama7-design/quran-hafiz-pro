@@ -6,6 +6,7 @@
 
 @layer base {
   :root {
+    --quran-font-size: 18px;
     --background: 40 33% 96%;
     --foreground: 150 20% 15%;
 
