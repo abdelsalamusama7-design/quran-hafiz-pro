@@ -14,6 +14,7 @@ import ProgressPage from "./pages/ProgressPage";
 import SettingsPage from "./pages/SettingsPage";
 import QuizPage from "./pages/QuizPage";
 import RecitationPage from "./pages/RecitationPage";
+import AITutorPage from "./pages/AITutorPage";
 import TajweedPage from "./pages/TajweedPage";
 import BadgesPage from "./pages/BadgesPage";
 import DailyWirdPage from "./pages/DailyWirdPage";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/tajweed" element={<TajweedPage />} />
               <Route path="/badges" element={<BadgesPage />} />
               <Route path="/daily-wird" element={<DailyWirdPage />} />
+              <Route path="/ai-tutor" element={<AITutorPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />

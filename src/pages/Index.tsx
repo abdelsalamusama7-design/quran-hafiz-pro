@@ -4,7 +4,7 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
@@ -17,6 +17,7 @@ const HomePage = () => {
     { icon: GraduationCap, label: lang === 'ar' ? 'التجويد' : 'Tajweed', action: () => navigate('/tajweed'), color: 'bg-primary text-primary-foreground' },
     { icon: Trophy, label: lang === 'ar' ? 'الإنجازات' : 'Badges', action: () => navigate('/badges'), color: 'bg-accent text-accent-foreground' },
     { icon: BookCheck, label: lang === 'ar' ? 'الورد اليومي' : 'Daily Wird', action: () => navigate('/daily-wird'), color: 'bg-secondary text-secondary-foreground' },
+    { icon: Bot, label: lang === 'ar' ? 'الشيخ AI' : 'AI Tutor', action: () => navigate('/ai-tutor'), color: 'bg-primary text-primary-foreground' },
   ];
 
   const recentSurahs = surahs.filter(s => [1, 36, 55, 67, 112, 114].includes(s.id));
