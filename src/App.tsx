@@ -18,6 +18,7 @@ import AITutorPage from "./pages/AITutorPage";
 import TajweedPage from "./pages/TajweedPage";
 import BadgesPage from "./pages/BadgesPage";
 import DailyWirdPage from "./pages/DailyWirdPage";
+import KidsModePage from "./pages/KidsModeePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/badges" element={<BadgesPage />} />
               <Route path="/daily-wird" element={<DailyWirdPage />} />
               <Route path="/ai-tutor" element={<AITutorPage />} />
+              <Route path="/kids" element={<KidsModePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />
