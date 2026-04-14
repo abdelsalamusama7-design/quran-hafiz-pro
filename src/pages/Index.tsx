@@ -18,6 +18,7 @@ const HomePage = () => {
     { icon: Trophy, label: lang === 'ar' ? 'الإنجازات' : 'Badges', action: () => navigate('/badges'), color: 'bg-accent text-accent-foreground' },
     { icon: BookCheck, label: lang === 'ar' ? 'الورد اليومي' : 'Daily Wird', action: () => navigate('/daily-wird'), color: 'bg-secondary text-secondary-foreground' },
     { icon: Bot, label: lang === 'ar' ? 'الشيخ AI' : 'AI Tutor', action: () => navigate('/ai-tutor'), color: 'bg-primary text-primary-foreground' },
+    { icon: BookOpen, label: lang === 'ar' ? '👶 وضع الأطفال' : '👶 Kids Mode', action: () => navigate('/kids'), color: 'bg-accent text-accent-foreground' },
   ];
 
   const recentSurahs = surahs.filter(s => [1, 36, 55, 67, 112, 114].includes(s.id));
