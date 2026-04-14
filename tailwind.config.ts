@@ -60,6 +60,15 @@ export default {
           DEFAULT: "hsl(var(--emerald, 153 40% 28%))",
           light: "hsl(var(--emerald-light))",
         },
+        kids: {
+          purple: "hsl(var(--kids-purple))",
+          pink: "hsl(var(--kids-pink))",
+          sky: "hsl(var(--kids-sky))",
+          green: "hsl(var(--kids-green))",
+          yellow: "hsl(var(--kids-yellow))",
+          mint: "hsl(var(--kids-mint))",
+          text: "hsl(var(--kids-text))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
