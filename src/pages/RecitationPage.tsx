@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
-import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap } from 'lucide-react';
+import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-type Mode = 'auto-detect' | 'correct' | 'blind' | 'practice';
+type Mode = 'live-listen' | 'auto-detect' | 'correct' | 'blind' | 'practice';
 
 interface Mistake {
   type: 'pronunciation' | 'missing_word' | 'extra_word' | 'tajweed' | 'order';
@@ -30,10 +30,21 @@ interface DetectedVerse {
   confidence: number;
 }
 
+interface LiveMessage {
+  id: number;
+  type: 'user' | 'agent' | 'system';
+  text: string;
+  status?: 'correct' | 'mistake' | 'forgot' | 'partial';
+  wrongWord?: string;
+  correctWord?: string;
+  accuracy?: number;
+  timestamp: Date;
+}
+
 const RecitationPage = () => {
   const { lang } = useLanguage();
   const { toast } = useToast();
-  const [mode, setMode] = useState<Mode>('auto-detect');
+  const [mode, setMode] = useState<Mode>('live-listen');
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
   const [selectedVerse, setSelectedVerse] = useState<number>(1);
   const [verses, setVerses] = useState<{ number: number; text: string }[]>([]);
@@ -48,7 +59,24 @@ const RecitationPage = () => {
   const [blindRevealedWords, setBlindRevealedWords] = useState<Set<number>>(new Set());
   const recognitionRef = useRef<any>(null);
 
+  // Live listening state
+  const [liveMessages, setLiveMessages] = useState<LiveMessage[]>([]);
+  const [isLiveListening, setIsLiveListening] = useState(false);
+  const [liveAccuracy, setLiveAccuracy] = useState<number | null>(null);
+  const [voiceFeedback, setVoiceFeedback] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const lastProcessedRef = useRef('');
+  const msgIdRef = useRef(0);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const liveRecognitionRef = useRef<any>(null);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [liveMessages]);
+
   const modes: { id: Mode; icon: any; labelAr: string; labelEn: string; descAr: string; descEn: string }[] = [
+    { id: 'live-listen', icon: MessageCircle, labelAr: 'تسميع مباشر', labelEn: 'Live Listen', descAr: 'شيخ AI يسمعلك ويصحح فوراً', descEn: 'AI teacher listens & corrects live' },
     { id: 'auto-detect', icon: Sparkles, labelAr: 'اقرأ وأنا أتابعك', labelEn: 'Auto Detect', descAr: 'اقرأ أي آية وسأحددها تلقائياً', descEn: 'Read any verse and I\'ll identify it' },
     { id: 'correct', icon: Mic, labelAr: 'تصحيح التلاوة', labelEn: 'Correction', descAr: 'اختر آية وسجّل تلاوتك', descEn: 'Select a verse and record' },
     { id: 'blind', icon: EyeOff, labelAr: 'حفظ بدون نظر', labelEn: 'Blind Mode', descAr: 'اختبر حفظك بدون رؤية النص', descEn: 'Test memorization without seeing text' },
@@ -66,6 +94,187 @@ const RecitationPage = () => {
       .catch(() => {});
   }, []);
 
+  // Speech synthesis for voice feedback
+  const speak = useCallback((text: string) => {
+    if (!voiceFeedback) return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ar-SA';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    // Try to find Arabic voice
+    const voices = synth.getVoices();
+    const arVoice = voices.find(v => v.lang.startsWith('ar'));
+    if (arVoice) utterance.voice = arVoice;
+    synth.speak(utterance);
+  }, [voiceFeedback]);
+
+  // === LIVE LISTENING FUNCTIONS ===
+  const addLiveMessage = useCallback((msg: Omit<LiveMessage, 'id' | 'timestamp'>) => {
+    const newMsg: LiveMessage = { ...msg, id: ++msgIdRef.current, timestamp: new Date() };
+    setLiveMessages(prev => [...prev, newMsg]);
+    return newMsg;
+  }, []);
+
+  const sendLiveCorrection = useCallback(async (userText: string) => {
+    if (isProcessing || !selectedSurah) return;
+    const verse = verses.find(v => v.number === selectedVerse);
+    if (!verse) return;
+    const surah = surahs.find(s => s.id === selectedSurah);
+
+    // Don't re-process same text
+    if (userText.trim() === lastProcessedRef.current) return;
+    lastProcessedRef.current = userText.trim();
+
+    setIsProcessing(true);
+    try {
+      const previousCorrections = liveMessages
+        .filter(m => m.type === 'agent' && m.status === 'mistake')
+        .map(m => m.text)
+        .slice(-3)
+        .join(' | ');
+
+      const { data, error } = await supabase.functions.invoke('live-correct', {
+        body: {
+          userText: userText.trim(),
+          expectedText: verse.text,
+          surahName: surah?.name || '',
+          verseNumber: selectedVerse,
+          previousCorrections: previousCorrections || undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.message) {
+        addLiveMessage({
+          type: 'agent',
+          text: data.message,
+          status: data.status,
+          wrongWord: data.wrongWord,
+          correctWord: data.correctWord,
+          accuracy: data.accuracy,
+        });
+
+        if (data.accuracy !== undefined) {
+          setLiveAccuracy(data.accuracy);
+        }
+
+        // Voice feedback for mistakes
+        if (data.status === 'mistake' && data.message) {
+          speak(data.message);
+        } else if (data.status === 'forgot' && data.correctWord) {
+          speak(data.correctWord);
+        }
+      }
+    } catch (err: any) {
+      console.error('Live correction error:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isProcessing, selectedSurah, selectedVerse, verses, liveMessages, addLiveMessage, speak]);
+
+  const startLiveListening = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({ title: lang === 'ar' ? 'غير مدعوم' : 'Not supported', description: lang === 'ar' ? 'استخدم Chrome' : 'Use Chrome', variant: 'destructive' });
+      return;
+    }
+
+    if (!selectedSurah || verses.length === 0) {
+      toast({ title: lang === 'ar' ? 'اختر سورة أولاً' : 'Select a Surah first', variant: 'destructive' });
+      return;
+    }
+
+    setLiveMessages([]);
+    setLiveAccuracy(null);
+    lastProcessedRef.current = '';
+    msgIdRef.current = 0;
+
+    const surah = surahs.find(s => s.id === selectedSurah);
+    addLiveMessage({
+      type: 'system',
+      text: lang === 'ar'
+        ? `🎧 بسم الله، ابدأ تلاوة الآية ${selectedVerse} من سورة ${surah?.name}. أنا أستمع لك...`
+        : `🎧 Start reciting verse ${selectedVerse} of ${surah?.nameEn}. I'm listening...`,
+    });
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ar-SA';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let fullTranscript = '';
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      let finalPart = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalPart += event.results[i][0].transcript + ' ';
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+
+      if (finalPart.trim()) {
+        fullTranscript += finalPart;
+        setTranscript(fullTranscript.trim());
+
+        // Add user message
+        addLiveMessage({ type: 'user', text: finalPart.trim() });
+
+        // Debounce AI correction call
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          sendLiveCorrection(fullTranscript.trim());
+        }, 800);
+      }
+    };
+
+    recognition.onerror = (e: any) => {
+      if (e.error !== 'no-speech' && e.error !== 'aborted') {
+        addLiveMessage({ type: 'system', text: lang === 'ar' ? '⚠️ خطأ في التسجيل' : '⚠️ Recording error' });
+      }
+    };
+
+    recognition.onend = () => {
+      // Auto-restart if still in live mode
+      if (liveRecognitionRef.current && isLiveListening) {
+        try { recognition.start(); } catch {}
+      }
+    };
+
+    liveRecognitionRef.current = recognition;
+    recognition.start();
+    setIsLiveListening(true);
+  }, [selectedSurah, selectedVerse, verses, lang, toast, addLiveMessage, sendLiveCorrection, isLiveListening]);
+
+  const stopLiveListening = useCallback(() => {
+    liveRecognitionRef.current?.stop();
+    liveRecognitionRef.current = null;
+    setIsLiveListening(false);
+
+    addLiveMessage({
+      type: 'system',
+      text: lang === 'ar'
+        ? `✅ انتهى التسميع${liveAccuracy !== null ? ` - الدقة: ${liveAccuracy}%` : ''}`
+        : `✅ Session ended${liveAccuracy !== null ? ` - Accuracy: ${liveAccuracy}%` : ''}`,
+    });
+  }, [lang, addLiveMessage, liveAccuracy]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      liveRecognitionRef.current?.stop();
+      recognitionRef.current?.stop();
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  // === EXISTING FUNCTIONS ===
   const startRecording = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -182,7 +391,7 @@ const RecitationPage = () => {
     }
   };
 
-  const needsSurahSelection = mode === 'correct' || mode === 'blind' || mode === 'practice';
+  const needsSurahSelection = mode === 'correct' || mode === 'blind' || mode === 'practice' || mode === 'live-listen';
 
   const resetAll = () => {
     setResult(null);
@@ -190,6 +399,25 @@ const RecitationPage = () => {
     setDetectedVerses([]);
     setDetectionFeedback('');
     setBlindRevealedWords(new Set());
+  };
+
+  const getStatusIcon = (status?: string) => {
+    switch (status) {
+      case 'correct': return '✅';
+      case 'mistake': return '❌';
+      case 'forgot': return '💡';
+      case 'partial': return '⚠️';
+      default: return '💬';
+    }
+  };
+
+  const getStatusBg = (status?: string) => {
+    switch (status) {
+      case 'correct': return 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800';
+      case 'mistake': return 'bg-destructive/5 border-destructive/20';
+      case 'forgot': return 'bg-accent/10 border-accent/30';
+      default: return 'bg-card border-border';
+    }
   };
 
   return (
@@ -203,9 +431,13 @@ const RecitationPage = () => {
         {modes.map(m => (
           <button
             key={m.id}
-            onClick={() => { setMode(m.id); resetAll(); }}
+            onClick={() => { setMode(m.id); resetAll(); setLiveMessages([]); setLiveAccuracy(null); if (isLiveListening) stopLiveListening(); }}
             className={`p-3 rounded-xl text-start transition-all ${
-              mode === m.id ? 'bg-primary text-primary-foreground shadow-lg scale-[1.02]' : 'bg-card text-foreground shadow-islamic hover:bg-muted'
+              mode === m.id
+                ? m.id === 'live-listen'
+                  ? 'bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground shadow-lg scale-[1.02]'
+                  : 'bg-primary text-primary-foreground shadow-lg scale-[1.02]'
+                : 'bg-card text-foreground shadow-islamic hover:bg-muted'
             }`}
           >
             <m.icon size={18} className="mb-1" />
@@ -229,7 +461,7 @@ const RecitationPage = () => {
               {surahs.map(s => (
                 <button
                   key={s.id}
-                  onClick={() => { setSelectedSurah(s.id); setSelectedVerse(1); setShowSurahPicker(false); resetAll(); fetchVerses(s.id); }}
+                  onClick={() => { setSelectedSurah(s.id); setSelectedVerse(1); setShowSurahPicker(false); resetAll(); setLiveMessages([]); fetchVerses(s.id); }}
                   className={`w-full text-start px-3 py-2 rounded-lg text-sm transition-colors ${
                     selectedSurah === s.id ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-foreground'
                   }`}
@@ -243,15 +475,15 @@ const RecitationPage = () => {
         </div>
       )}
 
-      {/* Verse selector (correct & blind modes) */}
-      {(mode === 'correct' || mode === 'blind') && selectedSurah && verses.length > 0 && (
+      {/* Verse selector (correct, blind, live-listen) */}
+      {(mode === 'correct' || mode === 'blind' || mode === 'live-listen') && selectedSurah && verses.length > 0 && (
         <div className="bg-card rounded-xl p-4 shadow-islamic">
           <p className="text-xs text-muted-foreground mb-2">{lang === 'ar' ? 'اختر الآية' : 'Select Verse'}</p>
           <div className="flex gap-1.5 flex-wrap">
             {verses.map(v => (
               <button
                 key={v.number}
-                onClick={() => { setSelectedVerse(v.number); resetAll(); }}
+                onClick={() => { setSelectedVerse(v.number); resetAll(); setLiveMessages([]); }}
                 className={`w-9 h-9 rounded-lg text-xs font-bold transition-all ${
                   selectedVerse === v.number ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                 }`}
@@ -259,6 +491,125 @@ const RecitationPage = () => {
                 {v.number}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* === LIVE LISTEN MODE === */}
+      {mode === 'live-listen' && selectedSurah && verses.length > 0 && (
+        <div className="space-y-4">
+          {/* Current verse display */}
+          <div className="bg-card rounded-xl p-4 shadow-islamic">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-muted-foreground">{lang === 'ar' ? `الآية ${selectedVerse}` : `Verse ${selectedVerse}`}</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowVerseText(!showVerseText)} className="text-muted-foreground">
+                  {showVerseText ? <Eye size={16} /> : <EyeOff size={16} />}
+                </button>
+                <button onClick={() => setVoiceFeedback(!voiceFeedback)} className="text-muted-foreground">
+                  {voiceFeedback ? <Volume2 size={16} className="text-primary" /> : <VolumeX size={16} />}
+                </button>
+              </div>
+            </div>
+            {showVerseText && (
+              <p className="font-quran text-lg leading-[2] text-foreground text-center" dir="rtl">
+                {verses.find(v => v.number === selectedVerse)?.text}
+              </p>
+            )}
+          </div>
+
+          {/* Accuracy indicator */}
+          {liveAccuracy !== null && (
+            <div className={`rounded-xl p-3 text-center font-bold text-lg ${
+              liveAccuracy >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' :
+              liveAccuracy >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300' :
+              'bg-destructive/10 text-destructive'
+            }`}>
+              {lang === 'ar' ? `الدقة: ${liveAccuracy}%` : `Accuracy: ${liveAccuracy}%`}
+            </div>
+          )}
+
+          {/* Chat area */}
+          <div className="bg-card rounded-xl shadow-islamic overflow-hidden">
+            <div className="bg-gradient-to-r from-primary to-emerald-600 px-4 py-3 flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${isLiveListening ? 'bg-green-300 animate-pulse' : 'bg-muted-foreground/50'}`} />
+              <span className="text-primary-foreground font-bold text-sm">
+                {lang === 'ar' ? '🎧 الشيخ AI - التسميع المباشر' : '🎧 AI Sheikh - Live Listening'}
+              </span>
+              {isProcessing && <Loader2 size={14} className="text-primary-foreground animate-spin ms-auto" />}
+            </div>
+
+            <div className="h-72 overflow-y-auto p-3 space-y-3 bg-muted/20">
+              {liveMessages.length === 0 && !isLiveListening && (
+                <div className="text-center text-muted-foreground text-sm py-12">
+                  <MessageCircle size={40} className="mx-auto mb-3 opacity-30" />
+                  <p>{lang === 'ar' ? 'اضغط "ابدأ التسميع" لتبدأ' : 'Press "Start" to begin'}</p>
+                </div>
+              )}
+
+              {liveMessages.map(msg => (
+                <div key={msg.id} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {msg.type === 'system' ? (
+                    <div className="w-full text-center">
+                      <span className="inline-block bg-muted px-3 py-1.5 rounded-full text-xs text-muted-foreground">
+                        {msg.text}
+                      </span>
+                    </div>
+                  ) : msg.type === 'user' ? (
+                    <div className="max-w-[80%] bg-primary text-primary-foreground rounded-2xl rounded-br-md px-4 py-2.5">
+                      <p className="font-quran text-base leading-relaxed" dir="rtl">{msg.text}</p>
+                    </div>
+                  ) : (
+                    <div className={`max-w-[85%] rounded-2xl rounded-bl-md px-4 py-3 border ${getStatusBg(msg.status)}`}>
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg shrink-0">{getStatusIcon(msg.status)}</span>
+                        <div className="flex-1">
+                          <p className="text-sm text-foreground font-arabic leading-relaxed">{msg.text}</p>
+                          {msg.wrongWord && msg.correctWord && (
+                            <div className="mt-2 flex items-center gap-2 text-sm bg-background/50 p-2 rounded-lg">
+                              <span className="text-destructive line-through font-quran">{msg.wrongWord}</span>
+                              <span className="text-muted-foreground">→</span>
+                              <span className="text-primary font-bold font-quran">{msg.correctWord}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+          </div>
+
+          {/* Control buttons */}
+          <div className="flex gap-3">
+            {!isLiveListening ? (
+              <button
+                onClick={startLiveListening}
+                className="flex-1 py-4 bg-gradient-to-r from-primary to-emerald-600 text-primary-foreground rounded-2xl font-bold text-base flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-transform"
+              >
+                <Mic size={22} />
+                {lang === 'ar' ? '🎤 ابدأ التسميع' : '🎤 Start Listening'}
+              </button>
+            ) : (
+              <button
+                onClick={stopLiveListening}
+                className="flex-1 py-4 bg-destructive text-destructive-foreground rounded-2xl font-bold text-base flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-transform animate-pulse"
+              >
+                <MicOff size={22} />
+                {lang === 'ar' ? '⏹️ إيقاف التسميع' : '⏹️ Stop'}
+              </button>
+            )}
+          </div>
+
+          {/* Tips */}
+          <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground space-y-1">
+            <p>💡 {lang === 'ar' ? 'نصائح:' : 'Tips:'}</p>
+            <p>• {lang === 'ar' ? 'تحدث بوضوح وبصوت مسموع' : 'Speak clearly and audibly'}</p>
+            <p>• {lang === 'ar' ? 'الشيخ AI سيصحح لك فوراً لو غلطت' : 'AI will correct you instantly'}</p>
+            <p>• {lang === 'ar' ? 'لو نسيت، سيذكرك بالكلمة التالية' : 'If you forget, it will remind you'}</p>
+            <p>• {lang === 'ar' ? 'فعّل الصوت ليقرأ لك التصحيح' : 'Enable voice for spoken corrections'}</p>
           </div>
         </div>
       )}
@@ -289,7 +640,6 @@ const RecitationPage = () => {
             </button>
           )}
 
-          {/* Detected verses */}
           {detectedVerses.length > 0 && (
             <div className="space-y-3 animate-fade-in text-start">
               <h3 className="font-semibold text-foreground flex items-center gap-2">
@@ -321,7 +671,6 @@ const RecitationPage = () => {
       {/* === CORRECT MODE === */}
       {mode === 'correct' && selectedSurah && verses.length > 0 && (
         <div className="space-y-4">
-          {/* Show verse */}
           <div className="bg-card rounded-xl p-4 shadow-islamic">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs text-muted-foreground">{lang === 'ar' ? 'الآية الصحيحة' : 'Correct Verse'}</p>
@@ -338,14 +687,12 @@ const RecitationPage = () => {
 
           <div className="bg-card rounded-xl p-6 shadow-islamic text-center space-y-4">
             <RecordButton isRecording={isRecording} isAnalyzing={isAnalyzing} lang={lang} onStart={startRecording} onStop={stopRecording} />
-
             {transcript && (
               <div className="p-3 bg-muted rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">{lang === 'ar' ? 'تلاوتك:' : 'Your recitation:'}</p>
                 <p className="font-quran text-lg text-foreground" dir="rtl">{transcript}</p>
               </div>
             )}
-
             {transcript && !isRecording && !result && (
               <button onClick={analyzeRecitation} disabled={isAnalyzing}
                 className="w-full py-3 bg-accent text-accent-foreground rounded-xl font-medium flex items-center justify-center gap-2">
@@ -432,7 +779,6 @@ const RecitationPage = () => {
             )}
           </div>
 
-          {/* Practice navigation */}
           {result && (
             <div className="flex gap-2">
               {selectedVerse > 1 && (
@@ -488,7 +834,6 @@ const ResultsPanel = ({ result, lang, mistakeTypeLabel, mistakeColor, onReset }:
   onReset: () => void;
 }) => (
   <div className="space-y-4 animate-fade-in">
-    {/* Accuracy */}
     <div className="bg-card rounded-2xl p-6 shadow-islamic text-center">
       <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center text-3xl font-bold mb-3 ${
         result.accuracy >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
@@ -501,7 +846,6 @@ const ResultsPanel = ({ result, lang, mistakeTypeLabel, mistakeColor, onReset }:
       <p className="text-sm text-muted-foreground mt-1">{result.overallFeedback}</p>
     </div>
 
-    {/* Mistakes */}
     {result.mistakes?.length > 0 && (
       <div className="bg-card rounded-xl p-4 shadow-islamic">
         <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -526,7 +870,6 @@ const ResultsPanel = ({ result, lang, mistakeTypeLabel, mistakeColor, onReset }:
       </div>
     )}
 
-    {/* Tajweed Notes */}
     {result.tajweedNotes && result.tajweedNotes.length > 0 && (
       <div className="bg-card rounded-xl p-4 shadow-islamic">
         <h3 className="font-semibold text-foreground mb-3">📖 {lang === 'ar' ? 'ملاحظات التجويد' : 'Tajweed Notes'}</h3>
@@ -541,7 +884,6 @@ const ResultsPanel = ({ result, lang, mistakeTypeLabel, mistakeColor, onReset }:
       </div>
     )}
 
-    {/* Tips */}
     {result.tips?.length > 0 && (
       <div className="bg-card rounded-xl p-4 shadow-islamic">
         <h3 className="font-semibold text-foreground mb-3">💡 {lang === 'ar' ? 'نصائح' : 'Tips'}</h3>
