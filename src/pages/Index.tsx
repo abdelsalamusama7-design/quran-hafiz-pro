@@ -4,21 +4,23 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
 
   const quickActions = [
-    { icon: BookOpen, label: t('continueMemorizing'), action: () => navigate('/quran'), color: 'bg-primary text-primary-foreground' },
-    { icon: HelpCircle, label: t('quiz'), action: () => navigate('/quiz'), color: 'bg-accent text-accent-foreground' },
+    { icon: BookOpen, label: lang === 'ar' ? 'القرآن الكريم' : 'Quran', action: () => navigate('/quran'), color: 'bg-primary text-primary-foreground' },
     { icon: Mic, label: lang === 'ar' ? 'تصحيح التلاوة' : 'Recitation', action: () => navigate('/recitation'), color: 'bg-secondary text-secondary-foreground' },
+    { icon: HelpCircle, label: t('quiz'), action: () => navigate('/quiz'), color: 'bg-accent text-accent-foreground' },
     { icon: GraduationCap, label: lang === 'ar' ? 'التجويد' : 'Tajweed', action: () => navigate('/tajweed'), color: 'bg-primary text-primary-foreground' },
-    { icon: Trophy, label: lang === 'ar' ? 'الإنجازات' : 'Badges', action: () => navigate('/badges'), color: 'bg-accent text-accent-foreground' },
+    { icon: Bot, label: lang === 'ar' ? 'الشيخ AI' : 'AI Tutor', action: () => navigate('/ai-tutor'), color: 'bg-accent text-accent-foreground' },
     { icon: BookCheck, label: lang === 'ar' ? 'الورد اليومي' : 'Daily Wird', action: () => navigate('/daily-wird'), color: 'bg-secondary text-secondary-foreground' },
-    { icon: Bot, label: lang === 'ar' ? 'الشيخ AI' : 'AI Tutor', action: () => navigate('/ai-tutor'), color: 'bg-primary text-primary-foreground' },
-    { icon: BookOpen, label: lang === 'ar' ? '👶 وضع الأطفال' : '👶 Kids Mode', action: () => navigate('/kids'), color: 'bg-accent text-accent-foreground' },
+    { icon: Trophy, label: lang === 'ar' ? 'الإنجازات' : 'Badges', action: () => navigate('/badges'), color: 'bg-primary text-primary-foreground' },
+    { icon: BarChart3, label: lang === 'ar' ? 'التقدم' : 'Progress', action: () => navigate('/progress'), color: 'bg-accent text-accent-foreground' },
+    { icon: Baby, label: lang === 'ar' ? 'وضع الأطفال' : 'Kids Mode', action: () => navigate('/kids'), color: 'bg-secondary text-secondary-foreground' },
+    { icon: Settings, label: lang === 'ar' ? 'الإعدادات' : 'Settings', action: () => navigate('/settings'), color: 'bg-primary text-primary-foreground' },
   ];
 
   const recentSurahs = surahs.filter(s => [1, 36, 55, 67, 112, 114].includes(s.id));
