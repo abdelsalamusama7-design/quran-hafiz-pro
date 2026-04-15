@@ -7,6 +7,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AudioProvider } from "@/contexts/AudioContext";
 import BottomNav from "@/components/BottomNav";
 import AudioPlayer from "@/components/AudioPlayer";
+import InstallPrompt from "@/components/InstallPrompt";
 import Index from "./pages/Index";
 import QuranPage from "./pages/QuranPage";
 import SurahViewPage from "./pages/SurahViewPage";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />
+            <InstallPrompt />
             <BottomNav />
           </BrowserRouter>
         </AudioProvider>
