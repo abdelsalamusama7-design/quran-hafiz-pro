@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { useState, useEffect } from 'react';
 import { Sun, Moon, Star, CheckCircle, RotateCcw } from 'lucide-react';
 
@@ -62,9 +63,7 @@ const DailyWirdPage = () => {
   return (
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground font-arabic">
-          {lang === 'ar' ? '📿 الورد اليومي' : '📿 Daily Wird'}
-        </h1>
+        <PageHeader title={lang === 'ar' ? '📿 الورد اليومي' : '📿 Daily Wird'} />
         <button onClick={resetAll} className="p-2 text-muted-foreground hover:text-foreground">
           <RotateCcw size={18} />
         </button>

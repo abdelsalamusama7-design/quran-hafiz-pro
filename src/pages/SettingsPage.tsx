@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { useTheme } from '@/hooks/useTheme';
 import { useFontSize } from '@/hooks/useFontSize';
 import { Globe, Type, Volume2, Sun, Moon } from 'lucide-react';
@@ -19,7 +20,7 @@ const SettingsPage = () => {
 
   return (
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-foreground mb-6 font-arabic">{t('settings')}</h1>
+      <PageHeader title={t('settings')} />
 
       {/* Dark/Light Mode */}
       <div className="bg-card rounded-xl p-4 shadow-islamic">

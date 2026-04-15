@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from '@/components/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -182,9 +183,7 @@ const CommunityPage = () => {
   return (
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground font-arabic">
-          {lang === 'ar' ? '🕌 مجتمع الحفاظ' : '🕌 Community'}
-        </h1>
+        <PageHeader title={lang === 'ar' ? '🕌 مجتمع الحفاظ' : '🕌 Community'} />
         <Button variant="ghost" size="icon" onClick={handleLogout}>
           <LogOut className="w-4 h-4" />
         </Button>

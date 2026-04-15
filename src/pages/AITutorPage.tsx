@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -98,11 +99,7 @@ const AITutorPage = () => {
   return (
     <div className="pb-24 pt-6 max-w-lg mx-auto flex flex-col h-[calc(100vh-6rem)]">
       <div className="px-4 mb-4">
-        <h1 className="text-2xl font-bold text-foreground font-arabic flex items-center gap-2">
-          <Bot size={24} className="text-primary" />
-          {lang === 'ar' ? 'الشيخ AI' : 'AI Tutor'}
-        </h1>
-        <p className="text-sm text-muted-foreground">
+        <PageHeader title={lang === 'ar' ? 'الشيخ AI' : 'AI Tutor'} />
           {lang === 'ar' ? 'اسألني عن التجويد، الحفظ، التفسير، أو أي شيء عن القرآن' : 'Ask me about Tajweed, memorization, Tafsir, or anything about Quran'}
         </p>
       </div>

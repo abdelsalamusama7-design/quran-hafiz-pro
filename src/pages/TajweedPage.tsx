@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
 import { BookOpen, ChevronDown, Volume2, CheckCircle } from 'lucide-react';
 import { useAudio } from '@/contexts/AudioContext';
@@ -151,9 +152,7 @@ const TajweedPage = () => {
 
   return (
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-foreground font-arabic">
-        {lang === 'ar' ? '📚 دروس التجويد' : '📚 Tajweed Lessons'}
-      </h1>
+      <PageHeader title={lang === 'ar' ? '📚 دروس التجويد' : '📚 Tajweed Lessons'} />
       <p className="text-sm text-muted-foreground">
         {lang === 'ar' ? `${completedRules.size} / ${tajweedRules.length} مكتمل` : `${completedRules.size} / ${tajweedRules.length} completed`}
       </p>

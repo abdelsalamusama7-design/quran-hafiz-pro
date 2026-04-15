@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { surahs } from '@/data/surahs';
 import SurahCard from '@/components/SurahCard';
 import { Search } from 'lucide-react';
@@ -41,7 +42,7 @@ const QuranPage = () => {
 
   return (
     <div className="pb-20 px-4 pt-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-foreground mb-4 font-arabic">{t('quran')}</h1>
+      <PageHeader title={t('quran')} />
 
       <div className="relative mb-3">
         <Search className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground" size={18} />

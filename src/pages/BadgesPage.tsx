@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { useGamification } from '@/hooks/useGamification';
 import { useMemorization } from '@/hooks/useMemorization';
 import { Trophy, Star, Flame, Target, Zap } from 'lucide-react';
@@ -19,9 +20,7 @@ const BadgesPage = () => {
 
   return (
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-foreground font-arabic">
-        {lang === 'ar' ? '🏆 الإنجازات والتحفيز' : '🏆 Achievements'}
-      </h1>
+      <PageHeader title={lang === 'ar' ? '🏆 الإنجازات والتحفيز' : '🏆 Achievements'} />
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
