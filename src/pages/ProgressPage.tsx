@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { useMemorization } from '@/hooks/useMemorization';
 import { surahs, totalVerses } from '@/data/surahs';
 import { BookCheck, Flame, TrendingUp, Map } from 'lucide-react';
@@ -28,7 +29,7 @@ const ProgressPage = () => {
 
   return (
     <div className="pb-20 px-4 pt-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-foreground mb-6 font-arabic">{t('progress')}</h1>
+      <PageHeader title={t('progress')} />
 
       {/* Overall */}
       <div className="bg-card rounded-2xl p-5 shadow-islamic mb-6">

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { surahs } from '@/data/surahs';
 import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -422,9 +423,7 @@ const RecitationPage = () => {
 
   return (
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-foreground font-arabic">
-        {lang === 'ar' ? '🎤 تصحيح التلاوة بالذكاء الاصطناعي' : '🎤 AI Recitation Correction'}
-      </h1>
+      <PageHeader title={lang === 'ar' ? '🎤 تصحيح التلاوة' : '🎤 Recitation'} />
 
       {/* Mode Selector */}
       <div className="grid grid-cols-2 gap-2">
