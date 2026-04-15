@@ -100,6 +100,7 @@ const AITutorPage = () => {
     <div className="pb-24 pt-6 max-w-lg mx-auto flex flex-col h-[calc(100vh-6rem)]">
       <div className="px-4 mb-4">
         <PageHeader title={lang === 'ar' ? 'الشيخ AI' : 'AI Tutor'} />
+        <p className="text-sm text-muted-foreground">
           {lang === 'ar' ? 'اسألني عن التجويد، الحفظ، التفسير، أو أي شيء عن القرآن' : 'Ask me about Tajweed, memorization, Tafsir, or anything about Quran'}
         </p>
       </div>
