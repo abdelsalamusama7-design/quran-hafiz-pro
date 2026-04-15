@@ -15,30 +15,39 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 bg-card border-t border-border z-50 safe-area-bottom">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
-        {tabs.map(({ path, icon: Icon, label }) => {
-          const isActive = location.pathname === path;
-          return (
-            <button
-              key={path}
-              onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-                isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
-              <span className="text-[10px] font-medium">{label}</span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="text-center py-1.5 border-t border-border/50">
-        <p className="text-[9px] text-muted-foreground leading-tight">
-          تنفيذ وتصميم <span className="font-semibold text-primary/70">insta-tech lab</span> : Eng Abdelsalam Usama : <span dir="ltr">01227080430</span>
-        </p>
+    <nav className="fixed bottom-0 inset-x-0 z-50 safe-area-bottom">
+      <div className="max-w-lg mx-auto">
+        <div className="mx-2 mb-2 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg">
+          <div className="flex items-center justify-around h-14 md:h-16">
+            {tabs.map(({ path, icon: Icon, label }) => {
+              const isActive = location.pathname === path;
+              return (
+                <button
+                  key={path}
+                  onClick={() => navigate(path)}
+                  className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all ${
+                    isActive
+                      ? 'text-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <div className={`transition-all ${isActive ? 'scale-110' : ''}`}>
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
+                  </div>
+                  <span className="text-[10px] font-medium">{label}</span>
+                  {isActive && (
+                    <div className="w-1 h-1 bg-primary rounded-full -mt-0.5" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="text-center py-1 px-4">
+          <p className="text-[8px] text-muted-foreground/60 leading-tight">
+            تنفيذ وتصميم <span className="font-semibold text-primary/50">insta-tech lab</span> : Eng Abdelsalam Usama : <span dir="ltr">01227080430</span>
+          </p>
+        </div>
       </div>
     </nav>
   );
