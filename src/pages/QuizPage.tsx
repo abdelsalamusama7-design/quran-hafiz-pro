@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import PageHeader from '@/components/PageHeader';
 import { useAudio } from '@/contexts/AudioContext';
 import { surahs } from '@/data/surahs';
 import { useMemorization } from '@/hooks/useMemorization';
@@ -220,7 +221,7 @@ const QuizPage = () => {
   if (loading) {
     return (
       <div className="pb-20 px-4 pt-6 max-w-lg mx-auto text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-6 font-arabic">{t('quizTitle')}</h1>
+        <PageHeader title={t('quizTitle')} />
         <Loader2 size={32} className="animate-spin text-primary mx-auto mt-12" />
       </div>
     );
@@ -229,7 +230,7 @@ const QuizPage = () => {
   if (questions.length === 0) {
     return (
       <div className="pb-20 px-4 pt-6 max-w-lg mx-auto text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-6 font-arabic">{t('quizTitle')}</h1>
+        <PageHeader title={t('quizTitle')} />
         <HelpCircle size={48} className="mx-auto mb-4 text-muted-foreground opacity-40" />
         <p className="text-muted-foreground font-arabic mb-4">{t('startMemorizing')}</p>
       </div>
@@ -270,7 +271,7 @@ const QuizPage = () => {
   return (
     <div className="pb-20 px-4 pt-6 max-w-lg mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-foreground font-arabic">{t('quizTitle')}</h1>
+        <PageHeader title={t('quizTitle')} />
         <span className="text-sm text-muted-foreground">{current + 1} / {questions.length}</span>
       </div>
 
