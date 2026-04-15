@@ -4,7 +4,7 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
@@ -20,7 +20,8 @@ const HomePage = () => {
     { icon: Trophy, label: lang === 'ar' ? 'الإنجازات' : 'Badges', action: () => navigate('/badges'), color: 'bg-primary text-primary-foreground' },
     { icon: BarChart3, label: lang === 'ar' ? 'التقدم' : 'Progress', action: () => navigate('/progress'), color: 'bg-accent text-accent-foreground' },
     { icon: Baby, label: lang === 'ar' ? 'وضع الأطفال' : 'Kids Mode', action: () => navigate('/kids'), color: 'bg-secondary text-secondary-foreground' },
-    { icon: Settings, label: lang === 'ar' ? 'الإعدادات' : 'Settings', action: () => navigate('/settings'), color: 'bg-primary text-primary-foreground' },
+    { icon: Users, label: lang === 'ar' ? 'المجتمع' : 'Community', action: () => navigate('/community'), color: 'bg-primary text-primary-foreground' },
+    { icon: Settings, label: lang === 'ar' ? 'الإعدادات' : 'Settings', action: () => navigate('/settings'), color: 'bg-accent text-accent-foreground' },
   ];
 
   const recentSurahs = surahs.filter(s => [1, 36, 55, 67, 112, 114].includes(s.id));
