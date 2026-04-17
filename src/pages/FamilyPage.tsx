@@ -365,7 +365,7 @@ const FamilyPage = () => {
                 <CardContent className="p-3 flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      {goal.completed && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                      {goal.completed && <CheckCircle2 className="w-4 h-4 text-primary" />}
                       <p className="font-semibold text-sm">{goal.title}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">
