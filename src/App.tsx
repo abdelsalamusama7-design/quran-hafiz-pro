@@ -8,6 +8,7 @@ import { AudioProvider } from "@/contexts/AudioContext";
 import BottomNav from "@/components/BottomNav";
 import AudioPlayer from "@/components/AudioPlayer";
 import InstallPrompt from "@/components/InstallPrompt";
+import OfflineIndicator from "@/components/OfflineIndicator";
 import Index from "./pages/Index";
 import QuranPage from "./pages/QuranPage";
 import SurahViewPage from "./pages/SurahViewPage";
@@ -55,6 +56,7 @@ const App = () => (
             </Routes>
             <AudioPlayer />
             <InstallPrompt />
+            <OfflineIndicator />
             <BottomNav />
           </BrowserRouter>
         </AudioProvider>
