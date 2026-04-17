@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Plus, Copy, Target, BookOpen, Award, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { Users, Plus, Copy, Target, BookOpen, Award, Trash2, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from 'recharts';
 
 interface FamilyGroup {
   id: string;
@@ -281,8 +282,9 @@ const FamilyPage = () => {
       )}
 
       <Tabs defaultValue="children" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="children">{lang === 'ar' ? 'الأطفال' : 'Children'}</TabsTrigger>
+          <TabsTrigger value="reports">{lang === 'ar' ? 'التقارير' : 'Reports'}</TabsTrigger>
           <TabsTrigger value="goals">{lang === 'ar' ? 'الأهداف' : 'Goals'}</TabsTrigger>
           <TabsTrigger value="activity">{lang === 'ar' ? 'النشاط' : 'Activity'}</TabsTrigger>
         </TabsList>
