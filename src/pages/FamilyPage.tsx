@@ -336,6 +336,145 @@ const FamilyPage = () => {
           })}
         </TabsContent>
 
+        {/* Reports */}
+        <TabsContent value="reports" className="space-y-4 mt-4">
+          {children.length === 0 ? (
+            <Card><CardContent className="p-6 text-center text-muted-foreground">
+              {lang === 'ar' ? 'لا يوجد أطفال لعرض التقارير.' : 'No children to report on.'}
+            </CardContent></Card>
+          ) : (() => {
+            // Build last 7 days dataset
+            const days = Array.from({ length: 7 }).map((_, i) => {
+              const d = new Date();
+              d.setDate(d.getDate() - (6 - i));
+              return d;
+            });
+            const weeklyData = days.map(d => {
+              const dayStr = d.toISOString().slice(0, 10);
+              const dayLogs = logs.filter(l => l.created_at.slice(0, 10) === dayStr);
+              const row: any = {
+                day: d.toLocaleDateString(lang === 'ar' ? 'ar' : 'en', { weekday: 'short' }),
+              };
+              children.forEach(c => {
+                row[c.display_name] = dayLogs
+                  .filter(l => l.child_user_id === c.user_id)
+                  .reduce((s, l) => s + l.verses_count, 0);
+              });
+              return row;
+            });
+
+            // Last 4 weeks dataset
+            const monthlyData = Array.from({ length: 4 }).map((_, i) => {
+              const start = new Date();
+              start.setDate(start.getDate() - (7 * (3 - i) + 6));
+              const end = new Date();
+              end.setDate(end.getDate() - (7 * (3 - i)));
+              const weekLogs = logs.filter(l => {
+                const ld = new Date(l.created_at);
+                return ld >= start && ld <= end;
+              });
+              return {
+                week: `${lang === 'ar' ? 'أسبوع' : 'W'} ${i + 1}`,
+                verses: weekLogs.reduce((s, l) => s + l.verses_count, 0),
+                minutes: weekLogs.reduce((s, l) => s + l.duration_minutes, 0),
+                points: weekLogs.reduce((s, l) => s + l.points_earned, 0),
+              };
+            });
+
+            const palette = ['hsl(var(--primary))', 'hsl(var(--accent))', '#8b5cf6', '#f59e0b', '#ec4899'];
+
+            return (
+              <>
+                {/* Summary cards */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: lang === 'ar' ? 'إجمالي الآيات' : 'Total Verses', value: logs.reduce((s, l) => s + l.verses_count, 0), icon: BookOpen },
+                    { label: lang === 'ar' ? 'إجمالي الدقائق' : 'Total Minutes', value: logs.reduce((s, l) => s + l.duration_minutes, 0), icon: Clock },
+                    { label: lang === 'ar' ? 'إجمالي النقاط' : 'Total Points', value: logs.reduce((s, l) => s + l.points_earned, 0), icon: Award },
+                  ].map(({ label, value, icon: Icon }) => (
+                    <Card key={label}>
+                      <CardContent className="p-3 text-center">
+                        <Icon className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <p className="text-xl font-bold">{value}</p>
+                        <p className="text-[10px] text-muted-foreground">{label}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Weekly chart per child */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                      {lang === 'ar' ? 'الآيات هذا الأسبوع (لكل طفل)' : 'Verses This Week (per child)'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={weeklyData}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                        <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        {children.map((c, i) => (
+                          <Bar key={c.id} dataKey={c.display_name} fill={palette[i % palette.length]} radius={[4, 4, 0, 0]} />
+                        ))}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Monthly trend */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-accent" />
+                      {lang === 'ar' ? 'تقرير شهري (آخر 4 أسابيع)' : 'Monthly Report (Last 4 Weeks)'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={monthlyData}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                        <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Line type="monotone" dataKey="verses" name={lang === 'ar' ? 'آيات' : 'Verses'} stroke="hsl(var(--primary))" strokeWidth={2} />
+                        <Line type="monotone" dataKey="minutes" name={lang === 'ar' ? 'دقائق' : 'Minutes'} stroke="hsl(var(--accent))" strokeWidth={2} />
+                        <Line type="monotone" dataKey="points" name={lang === 'ar' ? 'نقاط' : 'Points'} stroke="#f59e0b" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Per-child ranking */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{lang === 'ar' ? 'ترتيب الأطفال' : 'Children Ranking'}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {[...children]
+                      .map(c => ({ ...c, total: getChildStats(c.user_id).points }))
+                      .sort((a, b) => b.total - a.total)
+                      .map((c, idx) => (
+                        <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/40">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">{idx + 1}</span>
+                            <span className="text-sm font-medium">{c.display_name}</span>
+                          </div>
+                          <Badge variant="secondary">{c.total} {lang === 'ar' ? 'نقطة' : 'pts'}</Badge>
+                        </div>
+                      ))}
+                  </CardContent>
+                </Card>
+              </>
+            );
+          })()}
+        </TabsContent>
+
         {/* Goals */}
         <TabsContent value="goals" className="space-y-3 mt-4">
           {isParent && children.length > 0 && (
