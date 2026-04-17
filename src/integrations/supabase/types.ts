@@ -82,6 +82,53 @@ export type Database = {
         }
         Relationships: []
       }
+      child_activity_logs: {
+        Row: {
+          activity_type: string
+          child_user_id: string
+          created_at: string
+          duration_minutes: number | null
+          family_id: string
+          id: string
+          notes: string | null
+          points_earned: number | null
+          surah_number: number | null
+          verses_count: number | null
+        }
+        Insert: {
+          activity_type: string
+          child_user_id: string
+          created_at?: string
+          duration_minutes?: number | null
+          family_id: string
+          id?: string
+          notes?: string | null
+          points_earned?: number | null
+          surah_number?: number | null
+          verses_count?: number | null
+        }
+        Update: {
+          activity_type?: string
+          child_user_id?: string
+          created_at?: string
+          duration_minutes?: number | null
+          family_id?: string
+          id?: string
+          notes?: string | null
+          points_earned?: number | null
+          surah_number?: number | null
+          verses_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_activity_logs_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "family_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       circle_members: {
         Row: {
           circle_id: string
@@ -107,6 +154,71 @@ export type Database = {
             columns: ["circle_id"]
             isOneToOne: false
             referencedRelation: "memorization_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_groups: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          name: string
+          parent_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name: string
+          parent_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name?: string
+          parent_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      family_members: {
+        Row: {
+          age: number | null
+          display_name: string
+          family_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          display_name: string
+          family_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          display_name?: string
+          family_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "family_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -137,6 +249,56 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      parent_goals: {
+        Row: {
+          child_user_id: string
+          completed: boolean
+          created_at: string
+          description: string | null
+          family_id: string
+          id: string
+          parent_user_id: string
+          reward: string | null
+          target_date: string | null
+          target_verses: number | null
+          title: string
+        }
+        Insert: {
+          child_user_id: string
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          family_id: string
+          id?: string
+          parent_user_id: string
+          reward?: string | null
+          target_date?: string | null
+          target_verses?: number | null
+          title: string
+        }
+        Update: {
+          child_user_id?: string
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          family_id?: string
+          id?: string
+          parent_user_id?: string
+          reward?: string | null
+          target_date?: string | null
+          target_verses?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_goals_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "family_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -179,7 +341,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_family_member: {
+        Args: { _family_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_family_parent: {
+        Args: { _family_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

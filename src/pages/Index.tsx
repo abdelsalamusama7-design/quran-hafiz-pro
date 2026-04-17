@@ -4,7 +4,7 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
@@ -21,6 +21,7 @@ const HomePage = () => {
     { icon: BarChart3, label: lang === 'ar' ? 'التقدم' : 'Progress', action: () => navigate('/progress'), gradient: 'from-accent to-gold' },
     { icon: Baby, label: lang === 'ar' ? 'وضع الأطفال' : 'Kids Mode', action: () => navigate('/kids'), gradient: 'from-primary to-primary/80' },
     { icon: Users, label: lang === 'ar' ? 'المجتمع' : 'Community', action: () => navigate('/community'), gradient: 'from-accent to-accent/80' },
+    { icon: HomeIcon, label: lang === 'ar' ? 'العائلة' : 'Family', action: () => navigate('/family'), gradient: 'from-primary to-emerald' },
     { icon: Settings, label: lang === 'ar' ? 'الإعدادات' : 'Settings', action: () => navigate('/settings'), gradient: 'from-primary to-emerald' },
   ];
 

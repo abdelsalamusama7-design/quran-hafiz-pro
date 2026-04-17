@@ -22,6 +22,7 @@ import DailyWirdPage from "./pages/DailyWirdPage";
 import KidsModePage from "./pages/KidsModeePage";
 import AuthPage from "./pages/AuthPage";
 import CommunityPage from "./pages/CommunityPage";
+import FamilyPage from "./pages/FamilyPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/kids" element={<KidsModePage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/community" element={<CommunityPage />} />
+              <Route path="/family" element={<FamilyPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />
