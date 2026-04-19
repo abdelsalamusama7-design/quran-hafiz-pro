@@ -639,7 +639,18 @@ const RecitationPage = () => {
               <span className="text-primary-foreground font-bold text-sm">
                 {lang === 'ar' ? '🎧 الشيخ AI - التسميع المباشر' : '🎧 AI Sheikh - Live Listening'}
               </span>
-              {isProcessing && <Loader2 size={14} className="text-primary-foreground animate-spin ms-auto" />}
+              <div className="ms-auto flex items-center gap-2">
+                {isProcessing && <Loader2 size={14} className="text-primary-foreground animate-spin" />}
+                {liveMessages.length > 0 && (
+                  <button
+                    onClick={resetLiveSession}
+                    title={lang === 'ar' ? 'إعادة تعيين سريع' : 'Quick reset'}
+                    className="p-1.5 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 active:scale-90 transition-all"
+                  >
+                    <RefreshCw size={14} className="text-primary-foreground" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="h-72 overflow-y-auto p-3 space-y-3 bg-muted/20">
