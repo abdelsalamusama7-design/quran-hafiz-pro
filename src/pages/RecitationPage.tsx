@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import { surahs } from '@/data/surahs';
-import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -324,6 +324,50 @@ const RecitationPage = () => {
     }]);
   }, [lang, liveAccuracy]);
 
+  // Quick reset: clear chat and state, keep listening if active
+  const resetLiveSession = useCallback(() => {
+    // Cancel pending debounce + speech
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    window.speechSynthesis.cancel();
+
+    // Reset all session refs
+    lastProcessedRef.current = '';
+    lastUserTextRef.current = '';
+    accumulatedTranscriptRef.current = '';
+    previousMistakesRef.current = [];
+    msgIdRef.current = 0;
+
+    // Reset visible state
+    setLiveAccuracy(null);
+    setTranscript('');
+    setIsProcessing(false);
+    isProcessingRef.current = false;
+
+    const surah = surahs.find(s => s.id === selectedSurah);
+    const stillListening = isLiveListeningRef.current;
+
+    setLiveMessages([{
+      id: ++msgIdRef.current,
+      type: 'system',
+      text: stillListening
+        ? (lang === 'ar'
+            ? `🔄 تم إعادة التعيين. ابدأ التلاوة من جديد للآية ${selectedVerse} من سورة ${surah?.name}...`
+            : `🔄 Reset. Start reciting verse ${selectedVerse} of ${surah?.nameEn}...`)
+        : (lang === 'ar' ? '🔄 تم مسح المحادثة' : '🔄 Chat cleared'),
+      timestamp: new Date(),
+    }]);
+
+    toast({
+      title: lang === 'ar' ? '✅ تمت إعادة التعيين' : '✅ Reset complete',
+      description: stillListening
+        ? (lang === 'ar' ? 'استمر في التلاوة' : 'Continue reciting')
+        : (lang === 'ar' ? 'اضغط ابدأ التسميع' : 'Press start to begin'),
+    });
+  }, [lang, selectedSurah, selectedVerse, toast]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -595,7 +639,18 @@ const RecitationPage = () => {
               <span className="text-primary-foreground font-bold text-sm">
                 {lang === 'ar' ? '🎧 الشيخ AI - التسميع المباشر' : '🎧 AI Sheikh - Live Listening'}
               </span>
-              {isProcessing && <Loader2 size={14} className="text-primary-foreground animate-spin ms-auto" />}
+              <div className="ms-auto flex items-center gap-2">
+                {isProcessing && <Loader2 size={14} className="text-primary-foreground animate-spin" />}
+                {liveMessages.length > 0 && (
+                  <button
+                    onClick={resetLiveSession}
+                    title={lang === 'ar' ? 'إعادة تعيين سريع' : 'Quick reset'}
+                    className="p-1.5 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 active:scale-90 transition-all"
+                  >
+                    <RefreshCw size={14} className="text-primary-foreground" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="h-72 overflow-y-auto p-3 space-y-3 bg-muted/20">
@@ -642,7 +697,7 @@ const RecitationPage = () => {
           </div>
 
           {/* Control buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             {!isLiveListening ? (
               <button
                 onClick={startLiveListening}
@@ -657,7 +712,17 @@ const RecitationPage = () => {
                 className="flex-1 py-4 bg-destructive text-destructive-foreground rounded-2xl font-bold text-base flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-transform animate-pulse"
               >
                 <MicOff size={22} />
-                {lang === 'ar' ? '⏹️ إيقاف التسميع' : '⏹️ Stop'}
+                {lang === 'ar' ? '⏹️ إيقاف' : '⏹️ Stop'}
+              </button>
+            )}
+            {liveMessages.length > 0 && (
+              <button
+                onClick={resetLiveSession}
+                title={lang === 'ar' ? 'إعادة تعيين سريع' : 'Quick reset'}
+                className="px-5 py-4 bg-card border-2 border-primary/30 text-primary rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-md hover:bg-primary/5 active:scale-95 transition-all"
+              >
+                <RefreshCw size={20} />
+                <span className="hidden sm:inline text-sm">{lang === 'ar' ? 'إعادة' : 'Reset'}</span>
               </button>
             )}
           </div>
