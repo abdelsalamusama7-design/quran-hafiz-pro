@@ -283,6 +283,12 @@ const RecitationPage = () => {
     // Reset state for new session
     setLiveMessages([]);
     setLiveAccuracy(null);
+    setVersesCompleted(0);
+    versesCompletedRef.current = 0;
+    accuracySumRef.current = 0;
+    accuracyCountRef.current = 0;
+    sessionStartRef.current = Date.now();
+    sessionSavedRef.current = false;
     lastProcessedRef.current = '';
     lastUserTextRef.current = '';
     accumulatedTranscriptRef.current = '';
