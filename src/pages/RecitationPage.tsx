@@ -727,16 +727,31 @@ const RecitationPage = () => {
             )}
           </div>
 
-          {/* Accuracy indicator */}
-          {liveAccuracy !== null && (
-            <div className={`rounded-xl p-3 text-center font-bold text-lg ${
+          {/* Stats row: accuracy + verses completed + auto-advance toggle */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className={`rounded-xl p-2.5 text-center ${
+              liveAccuracy === null ? 'bg-muted text-muted-foreground' :
               liveAccuracy >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' :
               liveAccuracy >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300' :
               'bg-destructive/10 text-destructive'
             }`}>
-              {lang === 'ar' ? `الدقة: ${liveAccuracy}%` : `Accuracy: ${liveAccuracy}%`}
+              <p className="text-[10px] opacity-80">{lang === 'ar' ? 'الدقة' : 'Accuracy'}</p>
+              <p className="text-lg font-bold">{liveAccuracy !== null ? `${liveAccuracy}%` : '—'}</p>
             </div>
-          )}
+            <div className="rounded-xl p-2.5 text-center bg-primary/10 text-primary">
+              <p className="text-[10px] opacity-80">{lang === 'ar' ? 'آيات مكتملة' : 'Completed'}</p>
+              <p className="text-lg font-bold">{versesCompleted}</p>
+            </div>
+            <button
+              onClick={() => setAutoAdvance(v => !v)}
+              className={`rounded-xl p-2.5 text-center transition-all ${
+                autoAdvance ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <p className="text-[10px] opacity-80">{lang === 'ar' ? 'انتقال تلقائي' : 'Auto-advance'}</p>
+              <p className="text-xs font-bold mt-0.5">{autoAdvance ? (lang === 'ar' ? '✓ مُفعّل' : '✓ ON') : (lang === 'ar' ? 'مُعطّل' : 'OFF')}</p>
+            </button>
+          </div>
 
           {/* Chat area */}
           <div className="bg-card rounded-xl shadow-islamic overflow-hidden">
