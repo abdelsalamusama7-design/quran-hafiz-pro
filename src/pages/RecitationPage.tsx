@@ -390,15 +390,45 @@ const RecitationPage = () => {
     setIsLiveListening(false);
     window.speechSynthesis.cancel();
 
+    // Save session to child_activity_logs (with offline queue fallback)
+    const completed = versesCompletedRef.current;
+    const avgAccuracy = accuracyCountRef.current > 0
+      ? Math.round(accuracySumRef.current / accuracyCountRef.current)
+      : (liveAccuracy ?? 0);
+    const durationMin = sessionStartRef.current
+      ? Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 60000))
+      : 1;
+    const points = completed * 10 + Math.round(avgAccuracy / 10);
+
+    if (!sessionSavedRef.current && (completed > 0 || accuracyCountRef.current > 0)) {
+      sessionSavedRef.current = true;
+      const ctx = liveContextRef.current;
+      void logActivity({
+        activityType: 'live_recitation',
+        surahNumber: ctx.surahId,
+        versesCount: completed,
+        durationMinutes: durationMin,
+        pointsEarned: points,
+        notes: `Avg accuracy: ${avgAccuracy}%`,
+      }).then((res) => {
+        if (res.queued) {
+          toast({
+            title: lang === 'ar' ? '💾 تم الحفظ محلياً' : '💾 Saved locally',
+            description: lang === 'ar' ? 'سيُرفع تلقائياً عند رجوع الاتصال' : 'Will sync when online',
+          });
+        }
+      });
+    }
+
     setLiveMessages(prev => [...prev, {
       id: ++msgIdRef.current,
       type: 'system',
       text: lang === 'ar'
-        ? `✅ انتهى التسميع${liveAccuracy !== null ? ` - الدقة: ${liveAccuracy}%` : ''}`
-        : `✅ Session ended${liveAccuracy !== null ? ` - Accuracy: ${liveAccuracy}%` : ''}`,
+        ? `✅ انتهى التسميع - ${completed} آية مكتملة - دقة ${avgAccuracy}%`
+        : `✅ Session ended - ${completed} verses completed - ${avgAccuracy}% accuracy`,
       timestamp: new Date(),
     }]);
-  }, [lang, liveAccuracy]);
+  }, [lang, liveAccuracy, toast]);
 
   // Quick reset: clear chat and state, keep listening if active
   const resetLiveSession = useCallback(() => {
