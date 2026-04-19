@@ -188,6 +188,8 @@ const RecitationPage = () => {
 
         if (data.accuracy !== undefined) {
           setLiveAccuracy(data.accuracy);
+          accuracySumRef.current += data.accuracy;
+          accuracyCountRef.current += 1;
         }
 
         // Voice feedback
@@ -195,6 +197,59 @@ const RecitationPage = () => {
           speak(data.message);
         } else if (data.status === 'forgot' && data.correctWord) {
           speak(data.correctWord);
+        }
+
+        // === AUTO-ADVANCE on high accuracy ===
+        if (autoAdvanceRef.current && data.status === 'correct' && (data.accuracy ?? 0) >= 85) {
+          // Mark verse as completed
+          setVersesCompleted(c => c + 1);
+          versesCompletedRef.current += 1;
+
+          const completedVerseNum = ctx.verseNum;
+          const surahId = ctx.surahId;
+          const surah = surahs.find(s => s.id === surahId);
+          const allVerses = versesRef.current;
+          const nextVerse = allVerses.find(v => v.number === completedVerseNum + 1);
+
+          if (nextVerse) {
+            // Add encouragement system message
+            setLiveMessages(prev => [...prev, {
+              id: ++msgIdRef.current,
+              type: 'system',
+              text: lang === 'ar'
+                ? `🎉 أحسنت! انتقال تلقائي للآية ${nextVerse.number}`
+                : `🎉 Excellent! Auto-advancing to verse ${nextVerse.number}`,
+              timestamp: new Date(),
+            }]);
+            speak(lang === 'ar' ? 'أحسنت، الآية التالية' : 'Excellent, next verse');
+
+            // Update verse selection + context after a brief pause
+            setTimeout(() => {
+              setSelectedVerse(nextVerse.number);
+              liveContextRef.current = {
+                surahId,
+                verseNum: nextVerse.number,
+                verseText: nextVerse.text,
+                surahName: surah?.name || ctx.surahName,
+              };
+              // Reset per-verse buffers but keep session running
+              lastProcessedRef.current = '';
+              lastUserTextRef.current = '';
+              accumulatedTranscriptRef.current = '';
+              previousMistakesRef.current = [];
+            }, 1200);
+          } else {
+            // Reached end of surah
+            setLiveMessages(prev => [...prev, {
+              id: ++msgIdRef.current,
+              type: 'system',
+              text: lang === 'ar'
+                ? `🌟 ما شاء الله! أتممت سورة ${surah?.name}`
+                : `🌟 MashaAllah! You completed Surah ${surah?.nameEn}`,
+              timestamp: new Date(),
+            }]);
+            speak(lang === 'ar' ? 'ما شاء الله، أتممت السورة' : 'MashaAllah');
+          }
         }
       }
     } catch (err: any) {
