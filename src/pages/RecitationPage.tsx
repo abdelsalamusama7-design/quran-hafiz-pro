@@ -94,6 +94,10 @@ const RecitationPage = () => {
   useEffect(() => { isLiveListeningRef.current = isLiveListening; }, [isLiveListening]);
   useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
   useEffect(() => { versesCompletedRef.current = versesCompleted; }, [versesCompleted]);
+  const autoAdvanceRef = useRef(autoAdvance);
+  useEffect(() => { autoAdvanceRef.current = autoAdvance; }, [autoAdvance]);
+  const versesRef = useRef(verses);
+  useEffect(() => { versesRef.current = verses; }, [verses]);
 
   // Auto-scroll chat
   useEffect(() => {
