@@ -93,8 +93,8 @@ export default defineConfig(({ mode }) => ({
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'حافظ - تطبيق حفظ القرآن الكريم',
-        short_name: 'حافظ',
+        name: 'حافظ القرآن - تطبيق ذكي لحفظ القرآن الكريم',
+        short_name: 'حافظ القرآن',
         description: 'تطبيق ذكي لحفظ القرآن الكريم وتعلم التجويد بالذكاء الاصطناعي',
         theme_color: '#1a5c3a',
         background_color: '#f5f0e8',

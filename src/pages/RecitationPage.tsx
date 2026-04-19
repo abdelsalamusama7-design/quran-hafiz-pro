@@ -5,6 +5,7 @@ import { surahs } from '@/data/surahs';
 import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity } from '@/lib/logActivity';
 
 type Mode = 'live-listen' | 'auto-detect' | 'correct' | 'blind' | 'practice';
 
@@ -80,9 +81,23 @@ const RecitationPage = () => {
   });
   const previousMistakesRef = useRef<string[]>([]);
 
+  // Auto-advance + session tracking
+  const [versesCompleted, setVersesCompleted] = useState(0);
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const sessionStartRef = useRef<number | null>(null);
+  const accuracySumRef = useRef(0);
+  const accuracyCountRef = useRef(0);
+  const versesCompletedRef = useRef(0);
+  const sessionSavedRef = useRef(false);
+
   // Keep refs in sync
   useEffect(() => { isLiveListeningRef.current = isLiveListening; }, [isLiveListening]);
   useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
+  useEffect(() => { versesCompletedRef.current = versesCompleted; }, [versesCompleted]);
+  const autoAdvanceRef = useRef(autoAdvance);
+  useEffect(() => { autoAdvanceRef.current = autoAdvance; }, [autoAdvance]);
+  const versesRef = useRef(verses);
+  useEffect(() => { versesRef.current = verses; }, [verses]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -177,6 +192,8 @@ const RecitationPage = () => {
 
         if (data.accuracy !== undefined) {
           setLiveAccuracy(data.accuracy);
+          accuracySumRef.current += data.accuracy;
+          accuracyCountRef.current += 1;
         }
 
         // Voice feedback
@@ -184,6 +201,59 @@ const RecitationPage = () => {
           speak(data.message);
         } else if (data.status === 'forgot' && data.correctWord) {
           speak(data.correctWord);
+        }
+
+        // === AUTO-ADVANCE on high accuracy ===
+        if (autoAdvanceRef.current && data.status === 'correct' && (data.accuracy ?? 0) >= 85) {
+          // Mark verse as completed
+          setVersesCompleted(c => c + 1);
+          versesCompletedRef.current += 1;
+
+          const completedVerseNum = ctx.verseNum;
+          const surahId = ctx.surahId;
+          const surah = surahs.find(s => s.id === surahId);
+          const allVerses = versesRef.current;
+          const nextVerse = allVerses.find(v => v.number === completedVerseNum + 1);
+
+          if (nextVerse) {
+            // Add encouragement system message
+            setLiveMessages(prev => [...prev, {
+              id: ++msgIdRef.current,
+              type: 'system',
+              text: lang === 'ar'
+                ? `🎉 أحسنت! انتقال تلقائي للآية ${nextVerse.number}`
+                : `🎉 Excellent! Auto-advancing to verse ${nextVerse.number}`,
+              timestamp: new Date(),
+            }]);
+            speak(lang === 'ar' ? 'أحسنت، الآية التالية' : 'Excellent, next verse');
+
+            // Update verse selection + context after a brief pause
+            setTimeout(() => {
+              setSelectedVerse(nextVerse.number);
+              liveContextRef.current = {
+                surahId,
+                verseNum: nextVerse.number,
+                verseText: nextVerse.text,
+                surahName: surah?.name || ctx.surahName,
+              };
+              // Reset per-verse buffers but keep session running
+              lastProcessedRef.current = '';
+              lastUserTextRef.current = '';
+              accumulatedTranscriptRef.current = '';
+              previousMistakesRef.current = [];
+            }, 1200);
+          } else {
+            // Reached end of surah
+            setLiveMessages(prev => [...prev, {
+              id: ++msgIdRef.current,
+              type: 'system',
+              text: lang === 'ar'
+                ? `🌟 ما شاء الله! أتممت سورة ${surah?.name}`
+                : `🌟 MashaAllah! You completed Surah ${surah?.nameEn}`,
+              timestamp: new Date(),
+            }]);
+            speak(lang === 'ar' ? 'ما شاء الله، أتممت السورة' : 'MashaAllah');
+          }
         }
       }
     } catch (err: any) {
@@ -213,6 +283,12 @@ const RecitationPage = () => {
     // Reset state for new session
     setLiveMessages([]);
     setLiveAccuracy(null);
+    setVersesCompleted(0);
+    versesCompletedRef.current = 0;
+    accuracySumRef.current = 0;
+    accuracyCountRef.current = 0;
+    sessionStartRef.current = Date.now();
+    sessionSavedRef.current = false;
     lastProcessedRef.current = '';
     lastUserTextRef.current = '';
     accumulatedTranscriptRef.current = '';
@@ -314,15 +390,45 @@ const RecitationPage = () => {
     setIsLiveListening(false);
     window.speechSynthesis.cancel();
 
+    // Save session to child_activity_logs (with offline queue fallback)
+    const completed = versesCompletedRef.current;
+    const avgAccuracy = accuracyCountRef.current > 0
+      ? Math.round(accuracySumRef.current / accuracyCountRef.current)
+      : (liveAccuracy ?? 0);
+    const durationMin = sessionStartRef.current
+      ? Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 60000))
+      : 1;
+    const points = completed * 10 + Math.round(avgAccuracy / 10);
+
+    if (!sessionSavedRef.current && (completed > 0 || accuracyCountRef.current > 0)) {
+      sessionSavedRef.current = true;
+      const ctx = liveContextRef.current;
+      void logActivity({
+        activityType: 'live_recitation',
+        surahNumber: ctx.surahId,
+        versesCount: completed,
+        durationMinutes: durationMin,
+        pointsEarned: points,
+        notes: `Avg accuracy: ${avgAccuracy}%`,
+      }).then((res) => {
+        if (res.queued) {
+          toast({
+            title: lang === 'ar' ? '💾 تم الحفظ محلياً' : '💾 Saved locally',
+            description: lang === 'ar' ? 'سيُرفع تلقائياً عند رجوع الاتصال' : 'Will sync when online',
+          });
+        }
+      });
+    }
+
     setLiveMessages(prev => [...prev, {
       id: ++msgIdRef.current,
       type: 'system',
       text: lang === 'ar'
-        ? `✅ انتهى التسميع${liveAccuracy !== null ? ` - الدقة: ${liveAccuracy}%` : ''}`
-        : `✅ Session ended${liveAccuracy !== null ? ` - Accuracy: ${liveAccuracy}%` : ''}`,
+        ? `✅ انتهى التسميع - ${completed} آية مكتملة - دقة ${avgAccuracy}%`
+        : `✅ Session ended - ${completed} verses completed - ${avgAccuracy}% accuracy`,
       timestamp: new Date(),
     }]);
-  }, [lang, liveAccuracy]);
+  }, [lang, liveAccuracy, toast]);
 
   // Quick reset: clear chat and state, keep listening if active
   const resetLiveSession = useCallback(() => {
@@ -621,16 +727,31 @@ const RecitationPage = () => {
             )}
           </div>
 
-          {/* Accuracy indicator */}
-          {liveAccuracy !== null && (
-            <div className={`rounded-xl p-3 text-center font-bold text-lg ${
+          {/* Stats row: accuracy + verses completed + auto-advance toggle */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className={`rounded-xl p-2.5 text-center ${
+              liveAccuracy === null ? 'bg-muted text-muted-foreground' :
               liveAccuracy >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' :
               liveAccuracy >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300' :
               'bg-destructive/10 text-destructive'
             }`}>
-              {lang === 'ar' ? `الدقة: ${liveAccuracy}%` : `Accuracy: ${liveAccuracy}%`}
+              <p className="text-[10px] opacity-80">{lang === 'ar' ? 'الدقة' : 'Accuracy'}</p>
+              <p className="text-lg font-bold">{liveAccuracy !== null ? `${liveAccuracy}%` : '—'}</p>
             </div>
-          )}
+            <div className="rounded-xl p-2.5 text-center bg-primary/10 text-primary">
+              <p className="text-[10px] opacity-80">{lang === 'ar' ? 'آيات مكتملة' : 'Completed'}</p>
+              <p className="text-lg font-bold">{versesCompleted}</p>
+            </div>
+            <button
+              onClick={() => setAutoAdvance(v => !v)}
+              className={`rounded-xl p-2.5 text-center transition-all ${
+                autoAdvance ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <p className="text-[10px] opacity-80">{lang === 'ar' ? 'انتقال تلقائي' : 'Auto-advance'}</p>
+              <p className="text-xs font-bold mt-0.5">{autoAdvance ? (lang === 'ar' ? '✓ مُفعّل' : '✓ ON') : (lang === 'ar' ? 'مُعطّل' : 'OFF')}</p>
+            </button>
+          </div>
 
           {/* Chat area */}
           <div className="bg-card rounded-xl shadow-islamic overflow-hidden">

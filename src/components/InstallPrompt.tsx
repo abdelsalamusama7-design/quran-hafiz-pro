@@ -77,7 +77,7 @@ const InstallPrompt = () => {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-foreground text-sm font-arabic">
-                {lang === 'ar' ? '📲 حمّل تطبيق حافظ' : '📲 Install Hafiz App'}
+                {lang === 'ar' ? '📲 حمّل تطبيق حافظ القرآن' : '📲 Install Quran Hafiz App'}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {lang === 'ar' 

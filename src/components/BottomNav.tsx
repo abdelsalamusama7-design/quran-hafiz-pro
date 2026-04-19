@@ -1,15 +1,16 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Home, BookOpen, BarChart3, Settings } from 'lucide-react';
+import { Home, BookOpen, BarChart3, Download, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const BottomNav = () => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
   const tabs = [
     { path: '/', icon: Home, label: t('home') },
     { path: '/quran', icon: BookOpen, label: t('quran') },
+    { path: '/downloads', icon: Download, label: lang === 'ar' ? 'تنزيلاتي' : 'Downloads' },
     { path: '/progress', icon: BarChart3, label: t('progress') },
     { path: '/settings', icon: Settings, label: t('settings') },
   ];

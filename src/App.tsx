@@ -24,7 +24,14 @@ import KidsModePage from "./pages/KidsModeePage";
 import AuthPage from "./pages/AuthPage";
 import CommunityPage from "./pages/CommunityPage";
 import FamilyPage from "./pages/FamilyPage";
+import DownloadsPage from "./pages/DownloadsPage";
 import NotFound from "./pages/NotFound";
+import { useActivitySync } from "@/hooks/useActivitySync";
+
+const ActivitySyncBoot = () => {
+  useActivitySync();
+  return null;
+};
 
 const queryClient = new QueryClient();
 
@@ -36,6 +43,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ActivitySyncBoot />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/quran" element={<QuranPage />} />
@@ -52,6 +60,7 @@ const App = () => (
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/family" element={<FamilyPage />} />
+              <Route path="/downloads" element={<DownloadsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />
