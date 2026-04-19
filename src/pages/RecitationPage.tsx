@@ -5,6 +5,7 @@ import { surahs } from '@/data/surahs';
 import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity } from '@/lib/logActivity';
 
 type Mode = 'live-listen' | 'auto-detect' | 'correct' | 'blind' | 'practice';
 
@@ -80,9 +81,19 @@ const RecitationPage = () => {
   });
   const previousMistakesRef = useRef<string[]>([]);
 
+  // Auto-advance + session tracking
+  const [versesCompleted, setVersesCompleted] = useState(0);
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const sessionStartRef = useRef<number | null>(null);
+  const accuracySumRef = useRef(0);
+  const accuracyCountRef = useRef(0);
+  const versesCompletedRef = useRef(0);
+  const sessionSavedRef = useRef(false);
+
   // Keep refs in sync
   useEffect(() => { isLiveListeningRef.current = isLiveListening; }, [isLiveListening]);
   useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
+  useEffect(() => { versesCompletedRef.current = versesCompleted; }, [versesCompleted]);
 
   // Auto-scroll chat
   useEffect(() => {
