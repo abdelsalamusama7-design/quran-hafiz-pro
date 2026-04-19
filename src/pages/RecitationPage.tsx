@@ -132,29 +132,26 @@ const RecitationPage = () => {
   }, []);
 
   const sendLiveCorrection = useCallback(async (userText: string) => {
-    if (isProcessing || !selectedSurah) return;
-    const verse = verses.find(v => v.number === selectedVerse);
-    if (!verse) return;
-    const surah = surahs.find(s => s.id === selectedSurah);
+    if (isProcessingRef.current) return;
+    const ctx = liveContextRef.current;
+    if (!ctx.surahId || !ctx.verseText) return;
 
+    const trimmed = userText.trim();
     // Don't re-process same text
-    if (userText.trim() === lastProcessedRef.current) return;
-    lastProcessedRef.current = userText.trim();
+    if (!trimmed || trimmed === lastProcessedRef.current) return;
+    lastProcessedRef.current = trimmed;
 
     setIsProcessing(true);
+    isProcessingRef.current = true;
     try {
-      const previousCorrections = liveMessages
-        .filter(m => m.type === 'agent' && m.status === 'mistake')
-        .map(m => m.text)
-        .slice(-3)
-        .join(' | ');
+      const previousCorrections = previousMistakesRef.current.slice(-3).join(' | ');
 
       const { data, error } = await supabase.functions.invoke('live-correct', {
         body: {
-          userText: userText.trim(),
-          expectedText: verse.text,
-          surahName: surah?.name || '',
-          verseNumber: selectedVerse,
+          userText: trimmed,
+          expectedText: ctx.verseText,
+          surahName: ctx.surahName,
+          verseNumber: ctx.verseNum,
           previousCorrections: previousCorrections || undefined,
         },
       });
@@ -162,20 +159,27 @@ const RecitationPage = () => {
       if (error) throw error;
 
       if (data?.message) {
-        addLiveMessage({
+        const newMsg: LiveMessage = {
+          id: ++msgIdRef.current,
           type: 'agent',
           text: data.message,
           status: data.status,
           wrongWord: data.wrongWord,
           correctWord: data.correctWord,
           accuracy: data.accuracy,
-        });
+          timestamp: new Date(),
+        };
+        setLiveMessages(prev => [...prev, newMsg]);
+
+        if (data.status === 'mistake') {
+          previousMistakesRef.current.push(data.message);
+        }
 
         if (data.accuracy !== undefined) {
           setLiveAccuracy(data.accuracy);
         }
 
-        // Voice feedback for mistakes
+        // Voice feedback
         if (data.status === 'mistake' && data.message) {
           speak(data.message);
         } else if (data.status === 'forgot' && data.correctWord) {
@@ -186,8 +190,9 @@ const RecitationPage = () => {
       console.error('Live correction error:', err);
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }
-  }, [isProcessing, selectedSurah, selectedVerse, verses, liveMessages, addLiveMessage, speak]);
+  }, [speak]);
 
   const startLiveListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -201,89 +206,131 @@ const RecitationPage = () => {
       return;
     }
 
+    const verse = verses.find(v => v.number === selectedVerse);
+    if (!verse) return;
+    const surah = surahs.find(s => s.id === selectedSurah);
+
+    // Reset state for new session
     setLiveMessages([]);
     setLiveAccuracy(null);
     lastProcessedRef.current = '';
+    lastUserTextRef.current = '';
+    accumulatedTranscriptRef.current = '';
     msgIdRef.current = 0;
+    previousMistakesRef.current = [];
 
-    const surah = surahs.find(s => s.id === selectedSurah);
-    addLiveMessage({
+    // Update context ref
+    liveContextRef.current = {
+      surahId: selectedSurah,
+      verseNum: selectedVerse,
+      verseText: verse.text,
+      surahName: surah?.name || '',
+    };
+
+    setLiveMessages([{
+      id: ++msgIdRef.current,
       type: 'system',
       text: lang === 'ar'
         ? `🎧 بسم الله، ابدأ تلاوة الآية ${selectedVerse} من سورة ${surah?.name}. أنا أستمع لك...`
         : `🎧 Start reciting verse ${selectedVerse} of ${surah?.nameEn}. I'm listening...`,
-    });
+      timestamp: new Date(),
+    }]);
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'ar-SA';
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    let fullTranscript = '';
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
     recognition.onresult = (event: any) => {
-      let interim = '';
       let finalPart = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalPart += event.results[i][0].transcript + ' ';
-        } else {
-          interim += event.results[i][0].transcript;
         }
       }
 
-      if (finalPart.trim()) {
-        fullTranscript += finalPart;
-        setTranscript(fullTranscript.trim());
+      const finalTrimmed = finalPart.trim();
+      if (!finalTrimmed) return;
 
-        // Add user message
-        addLiveMessage({ type: 'user', text: finalPart.trim() });
+      // Dedupe: skip if same as last user text we added
+      if (finalTrimmed === lastUserTextRef.current) return;
+      lastUserTextRef.current = finalTrimmed;
 
-        // Debounce AI correction call
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          sendLiveCorrection(fullTranscript.trim());
-        }, 800);
-      }
+      // Accumulate transcript
+      accumulatedTranscriptRef.current = (accumulatedTranscriptRef.current + ' ' + finalTrimmed).trim();
+      setTranscript(accumulatedTranscriptRef.current);
+
+      // Add user message (only if different from last user message in list)
+      setLiveMessages(prev => {
+        const lastUserMsg = [...prev].reverse().find(m => m.type === 'user');
+        if (lastUserMsg && lastUserMsg.text === finalTrimmed) return prev;
+        return [...prev, {
+          id: ++msgIdRef.current,
+          type: 'user',
+          text: finalTrimmed,
+          timestamp: new Date(),
+        }];
+      });
+
+      // Debounce AI correction
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        sendLiveCorrection(accumulatedTranscriptRef.current);
+      }, 900);
     };
 
     recognition.onerror = (e: any) => {
       if (e.error !== 'no-speech' && e.error !== 'aborted') {
-        addLiveMessage({ type: 'system', text: lang === 'ar' ? '⚠️ خطأ في التسجيل' : '⚠️ Recording error' });
+        setLiveMessages(prev => [...prev, {
+          id: ++msgIdRef.current,
+          type: 'system',
+          text: lang === 'ar' ? '⚠️ خطأ في التسجيل' : '⚠️ Recording error',
+          timestamp: new Date(),
+        }]);
       }
     };
 
     recognition.onend = () => {
-      // Auto-restart if still in live mode
-      if (liveRecognitionRef.current && isLiveListening) {
+      // Auto-restart if still meant to be listening
+      if (isLiveListeningRef.current) {
         try { recognition.start(); } catch {}
       }
     };
 
     liveRecognitionRef.current = recognition;
-    recognition.start();
+    isLiveListeningRef.current = true;
     setIsLiveListening(true);
-  }, [selectedSurah, selectedVerse, verses, lang, toast, addLiveMessage, sendLiveCorrection, isLiveListening]);
+    try { recognition.start(); } catch {}
+  }, [selectedSurah, selectedVerse, verses, lang, toast, sendLiveCorrection]);
 
   const stopLiveListening = useCallback(() => {
-    liveRecognitionRef.current?.stop();
+    isLiveListeningRef.current = false;
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    try { liveRecognitionRef.current?.stop(); } catch {}
     liveRecognitionRef.current = null;
     setIsLiveListening(false);
+    window.speechSynthesis.cancel();
 
-    addLiveMessage({
+    setLiveMessages(prev => [...prev, {
+      id: ++msgIdRef.current,
       type: 'system',
       text: lang === 'ar'
         ? `✅ انتهى التسميع${liveAccuracy !== null ? ` - الدقة: ${liveAccuracy}%` : ''}`
         : `✅ Session ended${liveAccuracy !== null ? ` - Accuracy: ${liveAccuracy}%` : ''}`,
-    });
-  }, [lang, addLiveMessage, liveAccuracy]);
+      timestamp: new Date(),
+    }]);
+  }, [lang, liveAccuracy]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      liveRecognitionRef.current?.stop();
-      recognitionRef.current?.stop();
+      isLiveListeningRef.current = false;
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      try { liveRecognitionRef.current?.stop(); } catch {}
+      try { recognitionRef.current?.stop(); } catch {}
       window.speechSynthesis.cancel();
     };
   }, []);
