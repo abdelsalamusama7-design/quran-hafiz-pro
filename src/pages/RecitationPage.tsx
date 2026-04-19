@@ -67,9 +67,22 @@ const RecitationPage = () => {
   const [voiceFeedback, setVoiceFeedback] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const lastProcessedRef = useRef('');
+  const lastUserTextRef = useRef('');
+  const accumulatedTranscriptRef = useRef('');
   const msgIdRef = useRef(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const liveRecognitionRef = useRef<any>(null);
+  const isLiveListeningRef = useRef(false);
+  const isProcessingRef = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const liveContextRef = useRef<{ surahId: number | null; verseNum: number; verseText: string; surahName: string }>({
+    surahId: null, verseNum: 1, verseText: '', surahName: '',
+  });
+  const previousMistakesRef = useRef<string[]>([]);
+
+  // Keep refs in sync
+  useEffect(() => { isLiveListeningRef.current = isLiveListening; }, [isLiveListening]);
+  useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
 
   // Auto-scroll chat
   useEffect(() => {
