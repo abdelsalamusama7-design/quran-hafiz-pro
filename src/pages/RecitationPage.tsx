@@ -324,6 +324,50 @@ const RecitationPage = () => {
     }]);
   }, [lang, liveAccuracy]);
 
+  // Quick reset: clear chat and state, keep listening if active
+  const resetLiveSession = useCallback(() => {
+    // Cancel pending debounce + speech
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    window.speechSynthesis.cancel();
+
+    // Reset all session refs
+    lastProcessedRef.current = '';
+    lastUserTextRef.current = '';
+    accumulatedTranscriptRef.current = '';
+    previousMistakesRef.current = [];
+    msgIdRef.current = 0;
+
+    // Reset visible state
+    setLiveAccuracy(null);
+    setTranscript('');
+    setIsProcessing(false);
+    isProcessingRef.current = false;
+
+    const surah = surahs.find(s => s.id === selectedSurah);
+    const stillListening = isLiveListeningRef.current;
+
+    setLiveMessages([{
+      id: ++msgIdRef.current,
+      type: 'system',
+      text: stillListening
+        ? (lang === 'ar'
+            ? `🔄 تم إعادة التعيين. ابدأ التلاوة من جديد للآية ${selectedVerse} من سورة ${surah?.name}...`
+            : `🔄 Reset. Start reciting verse ${selectedVerse} of ${surah?.nameEn}...`)
+        : (lang === 'ar' ? '🔄 تم مسح المحادثة' : '🔄 Chat cleared'),
+      timestamp: new Date(),
+    }]);
+
+    toast({
+      title: lang === 'ar' ? '✅ تمت إعادة التعيين' : '✅ Reset complete',
+      description: stillListening
+        ? (lang === 'ar' ? 'استمر في التلاوة' : 'Continue reciting')
+        : (lang === 'ar' ? 'اضغط ابدأ التسميع' : 'Press start to begin'),
+    });
+  }, [lang, selectedSurah, selectedVerse, toast]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
