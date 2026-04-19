@@ -7,8 +7,8 @@ interface Translations {
 }
 
 const translations: Translations = {
-  appName: { ar: 'حافظ', en: 'Hafiz' },
-  appTagline: { ar: 'رفيقك في حفظ القرآن الكريم', en: 'Your Quran Memorization Companion' },
+  appName: { ar: 'حافظ القرآن', en: 'Quran Hafiz' },
+  appTagline: { ar: 'رفيقك الأمين في حفظ كتاب الله', en: 'Your trusted Quran memorization companion' },
   home: { ar: 'الرئيسية', en: 'Home' },
   quran: { ar: 'القرآن', en: 'Quran' },
   progress: { ar: 'التقدم', en: 'Progress' },
