@@ -697,7 +697,7 @@ const RecitationPage = () => {
           </div>
 
           {/* Control buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             {!isLiveListening ? (
               <button
                 onClick={startLiveListening}
@@ -712,7 +712,17 @@ const RecitationPage = () => {
                 className="flex-1 py-4 bg-destructive text-destructive-foreground rounded-2xl font-bold text-base flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-transform animate-pulse"
               >
                 <MicOff size={22} />
-                {lang === 'ar' ? '⏹️ إيقاف التسميع' : '⏹️ Stop'}
+                {lang === 'ar' ? '⏹️ إيقاف' : '⏹️ Stop'}
+              </button>
+            )}
+            {liveMessages.length > 0 && (
+              <button
+                onClick={resetLiveSession}
+                title={lang === 'ar' ? 'إعادة تعيين سريع' : 'Quick reset'}
+                className="px-5 py-4 bg-card border-2 border-primary/30 text-primary rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-md hover:bg-primary/5 active:scale-95 transition-all"
+              >
+                <RefreshCw size={20} />
+                <span className="hidden sm:inline text-sm">{lang === 'ar' ? 'إعادة' : 'Reset'}</span>
               </button>
             )}
           </div>
