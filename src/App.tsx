@@ -9,6 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import AudioPlayer from "@/components/AudioPlayer";
 import InstallPrompt from "@/components/InstallPrompt";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 import Index from "./pages/Index";
 import QuranPage from "./pages/QuranPage";
 import SurahViewPage from "./pages/SurahViewPage";
@@ -66,6 +67,7 @@ const App = () => (
             <AudioPlayer />
             <InstallPrompt />
             <OfflineIndicator />
+            <WhatsAppFloat />
             <BottomNav />
           </BrowserRouter>
         </AudioProvider>
