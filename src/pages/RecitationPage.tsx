@@ -1099,6 +1099,9 @@ const RecitationPage = () => {
       {result && (
         <ResultsPanel result={result} lang={lang} mistakeTypeLabel={mistakeTypeLabel} mistakeColor={mistakeColor} onReset={resetAll} />
       )}
+
+      {/* === END-OF-SESSION INTERACTIVE SUMMARY === */}
+      <SessionSummaryModal summary={sessionSummary} onClose={() => setSessionSummary(null)} />
     </div>
   );
 };
