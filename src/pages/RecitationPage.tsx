@@ -195,6 +195,12 @@ const RecitationPage = () => {
 
         if (data.status === 'mistake') {
           previousMistakesRef.current.push(data.message);
+          // Track for session summary (use the wrong word if available, else first word of message)
+          const mistakeKey = (data.wrongWord || data.correctWord || '').trim();
+          if (mistakeKey) {
+            const map = mistakeWordsRef.current;
+            map.set(mistakeKey, (map.get(mistakeKey) || 0) + 1);
+          }
         }
 
         if (data.accuracy !== undefined) {
@@ -301,6 +307,8 @@ const RecitationPage = () => {
     accumulatedTranscriptRef.current = '';
     msgIdRef.current = 0;
     previousMistakesRef.current = [];
+    mistakeWordsRef.current = new Map();
+    setSessionSummary(null);
 
     // Update context ref
     liveContextRef.current = {
