@@ -17,7 +17,7 @@ const MicLevelIndicator = ({ active, className = '' }: Props) => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
   useEffect(() => {
     if (!active) {
@@ -45,7 +45,7 @@ const MicLevelIndicator = ({ active, className = '' }: Props) => {
         analyser.smoothingTimeConstant = 0.6;
         source.connect(analyser);
         analyserRef.current = analyser;
-        dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
+        dataArrayRef.current = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
         setHasMic(true);
         tick();
       } catch {
