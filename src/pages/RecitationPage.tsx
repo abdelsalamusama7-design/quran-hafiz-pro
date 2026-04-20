@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
+import MicLevelIndicator from '@/components/MicLevelIndicator';
+import SessionSummaryModal, { type SessionSummary } from '@/components/SessionSummaryModal';
 import { surahs } from '@/data/surahs';
 import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -80,6 +82,8 @@ const RecitationPage = () => {
     surahId: null, verseNum: 1, verseText: '', surahName: '',
   });
   const previousMistakesRef = useRef<string[]>([]);
+  // Track mistakes for session summary (word -> count)
+  const mistakeWordsRef = useRef<Map<string, number>>(new Map());
 
   // Auto-advance + session tracking
   const [versesCompleted, setVersesCompleted] = useState(0);
@@ -89,6 +93,9 @@ const RecitationPage = () => {
   const accuracyCountRef = useRef(0);
   const versesCompletedRef = useRef(0);
   const sessionSavedRef = useRef(false);
+
+  // End-of-session summary
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
 
   // Keep refs in sync
   useEffect(() => { isLiveListeningRef.current = isLiveListening; }, [isLiveListening]);
@@ -188,6 +195,12 @@ const RecitationPage = () => {
 
         if (data.status === 'mistake') {
           previousMistakesRef.current.push(data.message);
+          // Track for session summary (use the wrong word if available, else first word of message)
+          const mistakeKey = (data.wrongWord || data.correctWord || '').trim();
+          if (mistakeKey) {
+            const map = mistakeWordsRef.current;
+            map.set(mistakeKey, (map.get(mistakeKey) || 0) + 1);
+          }
         }
 
         if (data.accuracy !== undefined) {
@@ -294,6 +307,8 @@ const RecitationPage = () => {
     accumulatedTranscriptRef.current = '';
     msgIdRef.current = 0;
     previousMistakesRef.current = [];
+    mistakeWordsRef.current = new Map();
+    setSessionSummary(null);
 
     // Update context ref
     liveContextRef.current = {
@@ -428,6 +443,24 @@ const RecitationPage = () => {
         : `✅ Session ended - ${completed} verses completed - ${avgAccuracy}% accuracy`,
       timestamp: new Date(),
     }]);
+
+    // Build interactive session summary if user actually recited something
+    if (completed > 0 || accuracyCountRef.current > 0) {
+      const topMistakes = Array.from(mistakeWordsRef.current.entries())
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      const ctx = liveContextRef.current;
+      const surah = surahs.find(s => s.id === ctx.surahId);
+      setSessionSummary({
+        surahName: lang === 'ar' ? (surah?.name || ctx.surahName) : (surah?.nameEn || ctx.surahName),
+        versesCompleted: completed,
+        averageAccuracy: avgAccuracy,
+        durationMinutes: durationMin,
+        topMistakes,
+        pointsEarned: points,
+      });
+    }
   }, [lang, liveAccuracy, toast]);
 
   // Quick reset: clear chat and state, keep listening if active
@@ -817,6 +850,25 @@ const RecitationPage = () => {
             </div>
           </div>
 
+          {/* Live mic level indicator (visible only when listening) */}
+          {isLiveListening && (
+            <div className="bg-card rounded-xl py-2 px-4 shadow-islamic flex items-center gap-3 animate-fade-in">
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive" />
+                </span>
+                <span className="text-[11px] font-bold text-foreground">
+                  {lang === 'ar' ? 'يستمع' : 'LIVE'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <MicLevelIndicator active={isLiveListening} />
+              </div>
+              {isProcessing && <Loader2 size={14} className="text-primary animate-spin" />}
+            </div>
+          )}
+
           {/* Control buttons */}
           <div className="flex gap-2">
             {!isLiveListening ? (
@@ -1047,6 +1099,9 @@ const RecitationPage = () => {
       {result && (
         <ResultsPanel result={result} lang={lang} mistakeTypeLabel={mistakeTypeLabel} mistakeColor={mistakeColor} onReset={resetAll} />
       )}
+
+      {/* === END-OF-SESSION INTERACTIVE SUMMARY === */}
+      <SessionSummaryModal summary={sessionSummary} onClose={() => setSessionSummary(null)} />
     </div>
   );
 };
