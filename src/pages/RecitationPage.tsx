@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
+import MicLevelIndicator from '@/components/MicLevelIndicator';
+import SessionSummaryModal, { type SessionSummary } from '@/components/SessionSummaryModal';
 import { surahs } from '@/data/surahs';
 import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -80,6 +82,8 @@ const RecitationPage = () => {
     surahId: null, verseNum: 1, verseText: '', surahName: '',
   });
   const previousMistakesRef = useRef<string[]>([]);
+  // Track mistakes for session summary (word -> count)
+  const mistakeWordsRef = useRef<Map<string, number>>(new Map());
 
   // Auto-advance + session tracking
   const [versesCompleted, setVersesCompleted] = useState(0);
@@ -89,6 +93,9 @@ const RecitationPage = () => {
   const accuracyCountRef = useRef(0);
   const versesCompletedRef = useRef(0);
   const sessionSavedRef = useRef(false);
+
+  // End-of-session summary
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
 
   // Keep refs in sync
   useEffect(() => { isLiveListeningRef.current = isLiveListening; }, [isLiveListening]);
