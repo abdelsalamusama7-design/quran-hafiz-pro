@@ -850,6 +850,25 @@ const RecitationPage = () => {
             </div>
           </div>
 
+          {/* Live mic level indicator (visible only when listening) */}
+          {isLiveListening && (
+            <div className="bg-card rounded-xl py-2 px-4 shadow-islamic flex items-center gap-3 animate-fade-in">
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive" />
+                </span>
+                <span className="text-[11px] font-bold text-foreground">
+                  {lang === 'ar' ? 'يستمع' : 'LIVE'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <MicLevelIndicator active={isLiveListening} />
+              </div>
+              {isProcessing && <Loader2 size={14} className="text-primary animate-spin" />}
+            </div>
+          )}
+
           {/* Control buttons */}
           <div className="flex gap-2">
             {!isLiveListening ? (
