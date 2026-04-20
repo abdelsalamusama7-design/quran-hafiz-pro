@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import PageHeader from '@/components/PageHeader';
+import BulkDownload from '@/components/BulkDownload';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
 import { Download, Trash2, Check, Loader2, HardDrive, WifiOff, Search, BookmarkCheck } from 'lucide-react';
@@ -136,6 +137,9 @@ const DownloadsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Bulk Juz/Surah Download */}
+      <BulkDownload onComplete={refreshList} />
 
       {/* Reciter selector */}
       <div className="bg-card rounded-xl p-3 shadow-islamic">
