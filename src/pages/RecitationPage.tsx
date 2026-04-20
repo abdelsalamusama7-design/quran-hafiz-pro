@@ -443,6 +443,24 @@ const RecitationPage = () => {
         : `✅ Session ended - ${completed} verses completed - ${avgAccuracy}% accuracy`,
       timestamp: new Date(),
     }]);
+
+    // Build interactive session summary if user actually recited something
+    if (completed > 0 || accuracyCountRef.current > 0) {
+      const topMistakes = Array.from(mistakeWordsRef.current.entries())
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      const ctx = liveContextRef.current;
+      const surah = surahs.find(s => s.id === ctx.surahId);
+      setSessionSummary({
+        surahName: lang === 'ar' ? (surah?.name || ctx.surahName) : (surah?.nameEn || ctx.surahName),
+        versesCompleted: completed,
+        averageAccuracy: avgAccuracy,
+        durationMinutes: durationMin,
+        topMistakes,
+        pointsEarned: points,
+      });
+    }
   }, [lang, liveAccuracy, toast]);
 
   // Quick reset: clear chat and state, keep listening if active
