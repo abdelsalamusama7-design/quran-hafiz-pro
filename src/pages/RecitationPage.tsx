@@ -3,8 +3,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import MicLevelIndicator from '@/components/MicLevelIndicator';
 import SessionSummaryModal, { type SessionSummary } from '@/components/SessionSummaryModal';
+import MushafRecitationView from '@/components/MushafRecitationView';
 import { surahs } from '@/data/surahs';
-import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from '@/lib/logActivity';
@@ -96,6 +97,14 @@ const RecitationPage = () => {
 
   // End-of-session summary
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
+
+  // Mushaf-style fullscreen reading view
+  const [mushafOpen, setMushafOpen] = useState(false);
+
+  // Structured mistakes list (for the mushaf view's "أخطاء" panel)
+  const [sessionMistakes, setSessionMistakes] = useState<Array<{
+    wrongWord?: string; correctWord?: string; message?: string; verseNumber?: number;
+  }>>([]);
 
   // Keep refs in sync
   useEffect(() => { isLiveListeningRef.current = isLiveListening; }, [isLiveListening]);
