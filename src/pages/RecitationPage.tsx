@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import MicLevelIndicator from '@/components/MicLevelIndicator';
@@ -49,7 +50,12 @@ interface LiveMessage {
 const RecitationPage = () => {
   const { lang } = useLanguage();
   const { toast } = useToast();
-  const [mode, setMode] = useState<Mode>('live-listen');
+  const [searchParams] = useSearchParams();
+  const initialMode = (searchParams.get('mode') as Mode) || 'live-listen';
+  const validModes: Mode[] = ['live-listen', 'auto-detect', 'correct', 'blind', 'practice'];
+  const [mode, setMode] = useState<Mode>(
+    validModes.includes(initialMode) ? initialMode : 'live-listen'
+  );
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
   const [selectedVerse, setSelectedVerse] = useState<number>(1);
   const [verses, setVerses] = useState<{ number: number; text: string }[]>([]);
