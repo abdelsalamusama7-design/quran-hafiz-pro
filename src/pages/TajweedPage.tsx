@@ -3,6 +3,7 @@ import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
 import { BookOpen, ChevronDown, Volume2, CheckCircle } from 'lucide-react';
 import { useAudio } from '@/contexts/AudioContext';
+import TajweedChecker from '@/components/TajweedChecker';
 
 interface TajweedRule {
   id: string;
@@ -153,6 +154,10 @@ const TajweedPage = () => {
   return (
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
       <PageHeader title={lang === 'ar' ? '📚 دروس التجويد' : '📚 Tajweed Lessons'} />
+
+      {/* AI Tajweed Checker */}
+      <TajweedChecker />
+
       <p className="text-sm text-muted-foreground">
         {lang === 'ar' ? `${completedRules.size} / ${tajweedRules.length} مكتمل` : `${completedRules.size} / ${tajweedRules.length} completed`}
       </p>
