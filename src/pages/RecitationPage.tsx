@@ -3,8 +3,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import MicLevelIndicator from '@/components/MicLevelIndicator';
 import SessionSummaryModal, { type SessionSummary } from '@/components/SessionSummaryModal';
+import MushafRecitationView from '@/components/MushafRecitationView';
 import { surahs } from '@/data/surahs';
-import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from '@/lib/logActivity';
@@ -96,6 +97,14 @@ const RecitationPage = () => {
 
   // End-of-session summary
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
+
+  // Mushaf-style fullscreen reading view
+  const [mushafOpen, setMushafOpen] = useState(false);
+
+  // Structured mistakes list (for the mushaf view's "أخطاء" panel)
+  const [sessionMistakes, setSessionMistakes] = useState<Array<{
+    wrongWord?: string; correctWord?: string; message?: string; verseNumber?: number;
+  }>>([]);
 
   // Keep refs in sync
   useEffect(() => { isLiveListeningRef.current = isLiveListening; }, [isLiveListening]);
@@ -201,6 +210,13 @@ const RecitationPage = () => {
             const map = mistakeWordsRef.current;
             map.set(mistakeKey, (map.get(mistakeKey) || 0) + 1);
           }
+          // Track for the Mushaf-view "أخطاء" drawer
+          setSessionMistakes(prev => [...prev, {
+            wrongWord: data.wrongWord,
+            correctWord: data.correctWord,
+            message: data.message,
+            verseNumber: ctx.verseNum,
+          }]);
         }
 
         if (data.accuracy !== undefined) {
@@ -309,6 +325,7 @@ const RecitationPage = () => {
     previousMistakesRef.current = [];
     mistakeWordsRef.current = new Map();
     setSessionSummary(null);
+    setSessionMistakes([]);
 
     // Update context ref
     liveContextRef.current = {
@@ -740,6 +757,17 @@ const RecitationPage = () => {
       {/* === LIVE LISTEN MODE === */}
       {mode === 'live-listen' && selectedSurah && verses.length > 0 && (
         <div className="space-y-4">
+          {/* Open fullscreen Mushaf-style reading view */}
+          <button
+            onClick={() => setMushafOpen(true)}
+            className="w-full py-3 bg-gradient-to-r from-accent/20 to-primary/10 border-2 border-primary/30 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-sm"
+          >
+            <BookOpen size={18} className="text-primary" />
+            <span className="font-bold text-foreground font-arabic">
+              {lang === 'ar' ? '📖 افتح المصحف للتسميع' : '📖 Open Mushaf View'}
+            </span>
+          </button>
+
           {/* Current verse display */}
           <div className="bg-card rounded-xl p-4 shadow-islamic">
             <div className="flex items-center justify-between mb-2">
@@ -1102,6 +1130,62 @@ const RecitationPage = () => {
 
       {/* === END-OF-SESSION INTERACTIVE SUMMARY === */}
       <SessionSummaryModal summary={sessionSummary} onClose={() => setSessionSummary(null)} />
+
+      {/* === MUSHAF-STYLE FULLSCREEN READING VIEW === */}
+      {mushafOpen && mode === 'live-listen' && selectedSurah && verses.length > 0 && (() => {
+        const surah = surahs.find(s => s.id === selectedSurah);
+        return (
+          <MushafRecitationView
+            surahName={surah?.name || ''}
+            surahNameEn={surah?.nameEn || ''}
+            surahId={selectedSurah}
+            verses={verses}
+            currentVerse={selectedVerse}
+            isListening={isLiveListening}
+            isProcessing={isProcessing}
+            liveAccuracy={liveAccuracy}
+            mistakes={sessionMistakes}
+            lang={lang as 'ar' | 'en'}
+            onClose={() => setMushafOpen(false)}
+            onStart={startLiveListening}
+            onStop={stopLiveListening}
+            onPrevVerse={() => {
+              if (selectedVerse > 1) {
+                setSelectedVerse(v => v - 1);
+                // Sync the live context if mid-session
+                const prev = verses.find(v => v.number === selectedVerse - 1);
+                if (prev && liveContextRef.current.surahId) {
+                  liveContextRef.current = {
+                    ...liveContextRef.current,
+                    verseNum: prev.number,
+                    verseText: prev.text,
+                  };
+                  lastProcessedRef.current = '';
+                  lastUserTextRef.current = '';
+                  accumulatedTranscriptRef.current = '';
+                }
+              }
+            }}
+            onNextVerse={() => {
+              if (selectedVerse < verses.length) {
+                setSelectedVerse(v => v + 1);
+                const next = verses.find(v => v.number === selectedVerse + 1);
+                if (next && liveContextRef.current.surahId) {
+                  liveContextRef.current = {
+                    ...liveContextRef.current,
+                    verseNum: next.number,
+                    verseText: next.text,
+                  };
+                  lastProcessedRef.current = '';
+                  lastUserTextRef.current = '';
+                  accumulatedTranscriptRef.current = '';
+                }
+              }
+            }}
+            onReset={resetLiveSession}
+          />
+        );
+      })()}
     </div>
   );
 };
