@@ -210,6 +210,13 @@ const RecitationPage = () => {
             const map = mistakeWordsRef.current;
             map.set(mistakeKey, (map.get(mistakeKey) || 0) + 1);
           }
+          // Track for the Mushaf-view "أخطاء" drawer
+          setSessionMistakes(prev => [...prev, {
+            wrongWord: data.wrongWord,
+            correctWord: data.correctWord,
+            message: data.message,
+            verseNumber: ctx.verseNum,
+          }]);
         }
 
         if (data.accuracy !== undefined) {
