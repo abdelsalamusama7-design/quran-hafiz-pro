@@ -757,6 +757,17 @@ const RecitationPage = () => {
       {/* === LIVE LISTEN MODE === */}
       {mode === 'live-listen' && selectedSurah && verses.length > 0 && (
         <div className="space-y-4">
+          {/* Open fullscreen Mushaf-style reading view */}
+          <button
+            onClick={() => setMushafOpen(true)}
+            className="w-full py-3 bg-gradient-to-r from-amber-50 to-emerald-50 dark:from-amber-950/30 dark:to-emerald-950/30 border-2 border-primary/30 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-sm"
+          >
+            <BookOpen size={18} className="text-primary" />
+            <span className="font-bold text-foreground font-arabic">
+              {lang === 'ar' ? '📖 افتح المصحف للتسميع' : '📖 Open Mushaf View'}
+            </span>
+          </button>
+
           {/* Current verse display */}
           <div className="bg-card rounded-xl p-4 shadow-islamic">
             <div className="flex items-center justify-between mb-2">
