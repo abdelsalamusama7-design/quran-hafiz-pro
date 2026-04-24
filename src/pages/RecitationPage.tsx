@@ -325,6 +325,7 @@ const RecitationPage = () => {
     previousMistakesRef.current = [];
     mistakeWordsRef.current = new Map();
     setSessionSummary(null);
+    setSessionMistakes([]);
 
     // Update context ref
     liveContextRef.current = {
