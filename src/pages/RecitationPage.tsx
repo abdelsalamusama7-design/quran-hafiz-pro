@@ -1130,6 +1130,62 @@ const RecitationPage = () => {
 
       {/* === END-OF-SESSION INTERACTIVE SUMMARY === */}
       <SessionSummaryModal summary={sessionSummary} onClose={() => setSessionSummary(null)} />
+
+      {/* === MUSHAF-STYLE FULLSCREEN READING VIEW === */}
+      {mushafOpen && mode === 'live-listen' && selectedSurah && verses.length > 0 && (() => {
+        const surah = surahs.find(s => s.id === selectedSurah);
+        return (
+          <MushafRecitationView
+            surahName={surah?.name || ''}
+            surahNameEn={surah?.nameEn || ''}
+            surahId={selectedSurah}
+            verses={verses}
+            currentVerse={selectedVerse}
+            isListening={isLiveListening}
+            isProcessing={isProcessing}
+            liveAccuracy={liveAccuracy}
+            mistakes={sessionMistakes}
+            lang={lang as 'ar' | 'en'}
+            onClose={() => setMushafOpen(false)}
+            onStart={startLiveListening}
+            onStop={stopLiveListening}
+            onPrevVerse={() => {
+              if (selectedVerse > 1) {
+                setSelectedVerse(v => v - 1);
+                // Sync the live context if mid-session
+                const prev = verses.find(v => v.number === selectedVerse - 1);
+                if (prev && liveContextRef.current.surahId) {
+                  liveContextRef.current = {
+                    ...liveContextRef.current,
+                    verseNum: prev.number,
+                    verseText: prev.text,
+                  };
+                  lastProcessedRef.current = '';
+                  lastUserTextRef.current = '';
+                  accumulatedTranscriptRef.current = '';
+                }
+              }
+            }}
+            onNextVerse={() => {
+              if (selectedVerse < verses.length) {
+                setSelectedVerse(v => v + 1);
+                const next = verses.find(v => v.number === selectedVerse + 1);
+                if (next && liveContextRef.current.surahId) {
+                  liveContextRef.current = {
+                    ...liveContextRef.current,
+                    verseNum: next.number,
+                    verseText: next.text,
+                  };
+                  lastProcessedRef.current = '';
+                  lastUserTextRef.current = '';
+                  accumulatedTranscriptRef.current = '';
+                }
+              }
+            }}
+            onReset={resetLiveSession}
+          />
+        );
+      })()}
     </div>
   );
 };
