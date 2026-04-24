@@ -229,7 +229,7 @@ const TajweedChecker = () => {
         >
           {isRecording ? <MicOff size={26} /> : <Mic size={26} />}
         </button>
-        <MicLevelIndicator isActive={isRecording} />
+        <MicLevelIndicator active={isRecording} />
         <p className="text-[11px] text-muted-foreground">
           {isRecording
             ? (lang === 'ar' ? 'جاري الاستماع... اقرأ الآية' : 'Listening... recite the verse')
