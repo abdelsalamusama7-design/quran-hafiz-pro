@@ -572,23 +572,41 @@ const RecitationPage = () => {
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    // Per-session dedupe of finalized indices + content keys
+    const localFinalized = new Set<number>();
+    const localSeenKeys = new Set<string>();
     let finalTranscript = '';
     recognition.onresult = (event: any) => {
       let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          interim += event.results[i][0].transcript;
+      for (let i = 0; i < event.results.length; i++) {
+        const res = event.results[i];
+        const text = (res[0]?.transcript || '');
+        if (res.isFinal) {
+          if (localFinalized.has(i)) continue;
+          const trimmed = text.trim();
+          if (!trimmed) continue;
+          const key = trimmed.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/\s+/g, ' ').toLowerCase();
+          if (localSeenKeys.has(key)) {
+            localFinalized.add(i);
+            continue;
+          }
+          localSeenKeys.add(key);
+          localFinalized.add(i);
+          finalTranscript += trimmed + ' ';
+        } else if (i >= event.resultIndex) {
+          // Only show currently-active interim (latest segment)
+          interim += text;
         }
       }
-      setTranscript(finalTranscript + interim);
+      setTranscript((finalTranscript + interim).trim());
     };
 
     recognition.onerror = () => setIsRecording(false);
     recognition.onend = () => {
       setIsRecording(false);
       if (finalTranscript.trim()) setTranscript(finalTranscript.trim());
+      localFinalized.clear();
+      localSeenKeys.clear();
     };
 
     recognitionRef.current = recognition;
