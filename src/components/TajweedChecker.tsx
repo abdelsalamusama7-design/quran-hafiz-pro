@@ -31,6 +31,23 @@ const severityStyles = {
   major: 'bg-destructive/15 text-destructive border-destructive/30',
 };
 
+const severityHighlight = {
+  minor: 'bg-secondary/40 text-secondary-foreground border-b-2 border-secondary',
+  moderate: 'bg-accent/40 text-accent-foreground border-b-2 border-accent',
+  major: 'bg-destructive/25 text-destructive border-b-2 border-destructive',
+};
+
+// Strip Arabic diacritics (tashkeel) for matching
+const stripDiacritics = (s: string) =>
+  s.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/[إأآا]/g, 'ا').trim();
+
+const wordsMatch = (a: string, b: string) => {
+  const na = stripDiacritics(a);
+  const nb = stripDiacritics(b);
+  if (!na || !nb) return false;
+  return na === nb || na.includes(nb) || nb.includes(na);
+};
+
 const severityLabel = (s: TajweedError['severity'], lang: 'ar' | 'en') => {
   if (lang === 'ar') return s === 'minor' ? 'بسيط' : s === 'moderate' ? 'متوسط' : 'شديد';
   return s === 'minor' ? 'Minor' : s === 'moderate' ? 'Moderate' : 'Major';
@@ -152,6 +169,38 @@ const TajweedChecker = () => {
     setExpandedError(null);
   };
 
+  const focusError = (i: number) => {
+    setExpandedError(i);
+    setTimeout(() => {
+      const el = document.getElementById(`tajweed-err-${i}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
+
+  // Render verse text with errors highlighted
+  const renderHighlightedVerse = () => {
+    if (!report || report.errors.length === 0) {
+      return <span>{currentVerseText}</span>;
+    }
+    const tokens = currentVerseText.split(/(\s+)/);
+    return tokens.map((tok, idx) => {
+      if (/^\s+$/.test(tok)) return <span key={idx}>{tok}</span>;
+      const errIdx = report.errors.findIndex(e => wordsMatch(tok, e.word));
+      if (errIdx === -1) return <span key={idx}>{tok}</span>;
+      const err = report.errors[errIdx];
+      return (
+        <button
+          key={idx}
+          onClick={() => focusError(errIdx)}
+          className={`inline-block px-1 mx-0.5 rounded-md transition-all hover:scale-105 cursor-pointer ${severityHighlight[err.severity]}`}
+          title={`${err.rule} — ${severityLabel(err.severity, lang)}`}
+        >
+          {tok}
+        </button>
+      );
+    });
+  };
+
   return (
     <div className="bg-card rounded-xl shadow-islamic p-4 space-y-4 border border-primary/20">
       <div className="flex items-center gap-2">
@@ -207,12 +256,35 @@ const TajweedChecker = () => {
       {/* Verse text */}
       {currentVerseText && (
         <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">
-            {lang === 'ar' ? 'النص الصحيح:' : 'Correct text:'}
-          </p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] text-muted-foreground">
+              {lang === 'ar' ? 'النص الصحيح:' : 'Correct text:'}
+            </p>
+            {report && report.errors.length > 0 && (
+              <p className="text-[9px] text-muted-foreground">
+                {lang === 'ar' ? 'اضغط على الكلمة الملوّنة لعرض التصحيح' : 'Tap colored word for correction'}
+              </p>
+            )}
+          </div>
           <p className="font-quran text-base text-foreground leading-loose text-right" dir="rtl">
-            {currentVerseText}
+            {renderHighlightedVerse()}
           </p>
+          {report && report.errors.length > 0 && (
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/10 flex-wrap">
+              <span className="text-[9px] text-muted-foreground">
+                {lang === 'ar' ? 'الدلالة:' : 'Legend:'}
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary/40 text-secondary-foreground">
+                {lang === 'ar' ? 'بسيط' : 'Minor'}
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/40 text-accent-foreground">
+                {lang === 'ar' ? 'متوسط' : 'Moderate'}
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-destructive/25 text-destructive">
+                {lang === 'ar' ? 'شديد' : 'Major'}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
