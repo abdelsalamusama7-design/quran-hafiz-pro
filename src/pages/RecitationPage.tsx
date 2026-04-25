@@ -83,6 +83,10 @@ const RecitationPage = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const liveRecognitionRef = useRef<any>(null);
   const isLiveListeningRef = useRef(false);
+  // Track finalized result indices to avoid double-counting when browsers
+  // re-emit results from before resultIndex (Chrome Android bug)
+  const finalizedIndicesRef = useRef<Set<number>>(new Set());
+  const seenFinalKeysRef = useRef<Set<string>>(new Set());
   const isProcessingRef = useRef(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const liveContextRef = useRef<{ surahId: number | null; verseNum: number; verseText: string; surahName: string }>({
