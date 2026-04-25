@@ -352,6 +352,8 @@ const RecitationPage = () => {
     setSessionMistakes([]);
     finalizedIndicesRef.current = new Set();
     seenFinalKeysRef.current = new Set();
+    setTranscriptLog([]);
+    logIdRef.current = 0;
 
     // Update context ref
     liveContextRef.current = {
