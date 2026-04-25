@@ -26,6 +26,7 @@ import AuthPage from "./pages/AuthPage";
 import CommunityPage from "./pages/CommunityPage";
 import FamilyPage from "./pages/FamilyPage";
 import DownloadsPage from "./pages/DownloadsPage";
+import ManualMemorizationPage from "./pages/ManualMemorizationPage";
 import NotFound from "./pages/NotFound";
 import { useActivitySync } from "@/hooks/useActivitySync";
 
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/family" element={<FamilyPage />} />
               <Route path="/downloads" element={<DownloadsPage />} />
+              <Route path="/manual-memorization" element={<ManualMemorizationPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />
