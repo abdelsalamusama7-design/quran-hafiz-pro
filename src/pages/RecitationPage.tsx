@@ -83,6 +83,10 @@ const RecitationPage = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const liveRecognitionRef = useRef<any>(null);
   const isLiveListeningRef = useRef(false);
+  // Track finalized result indices to avoid double-counting when browsers
+  // re-emit results from before resultIndex (Chrome Android bug)
+  const finalizedIndicesRef = useRef<Set<number>>(new Set());
+  const seenFinalKeysRef = useRef<Set<string>>(new Set());
   const isProcessingRef = useRef(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const liveContextRef = useRef<{ surahId: number | null; verseNum: number; verseText: string; surahName: string }>({
@@ -332,6 +336,8 @@ const RecitationPage = () => {
     mistakeWordsRef.current = new Map();
     setSessionSummary(null);
     setSessionMistakes([]);
+    finalizedIndicesRef.current = new Set();
+    seenFinalKeysRef.current = new Set();
 
     // Update context ref
     liveContextRef.current = {
@@ -356,18 +362,28 @@ const RecitationPage = () => {
     recognition.interimResults = true;
 
     recognition.onresult = (event: any) => {
-      let finalPart = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalPart += event.results[i][0].transcript + ' ';
+      // Robust: iterate ALL results and skip ones we've already finalized.
+      // Also dedupe by normalized text content (some browsers re-emit identical
+      // finals across restarts). This eliminates the duplicated/garbled text.
+      let newFinalText = '';
+      for (let i = 0; i < event.results.length; i++) {
+        const res = event.results[i];
+        if (!res.isFinal) continue;
+        if (finalizedIndicesRef.current.has(i)) continue;
+        const text = (res[0]?.transcript || '').trim();
+        if (!text) continue;
+        const key = text.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/\s+/g, ' ').toLowerCase();
+        if (seenFinalKeysRef.current.has(key)) {
+          finalizedIndicesRef.current.add(i);
+          continue;
         }
+        seenFinalKeysRef.current.add(key);
+        finalizedIndicesRef.current.add(i);
+        newFinalText += text + ' ';
       }
 
-      const finalTrimmed = finalPart.trim();
+      const finalTrimmed = newFinalText.trim();
       if (!finalTrimmed) return;
-
-      // Dedupe: skip if same as last user text we added
-      if (finalTrimmed === lastUserTextRef.current) return;
       lastUserTextRef.current = finalTrimmed;
 
       // Accumulate transcript
@@ -405,8 +421,10 @@ const RecitationPage = () => {
     };
 
     recognition.onend = () => {
-      // Auto-restart if still meant to be listening
+      // Auto-restart if still meant to be listening. Reset the per-session
+      // index dedupe because the new session restarts indices from 0.
       if (isLiveListeningRef.current) {
+        finalizedIndicesRef.current = new Set();
         try { recognition.start(); } catch {}
       }
     };
@@ -554,23 +572,41 @@ const RecitationPage = () => {
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    // Per-session dedupe of finalized indices + content keys
+    const localFinalized = new Set<number>();
+    const localSeenKeys = new Set<string>();
     let finalTranscript = '';
     recognition.onresult = (event: any) => {
       let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          interim += event.results[i][0].transcript;
+      for (let i = 0; i < event.results.length; i++) {
+        const res = event.results[i];
+        const text = (res[0]?.transcript || '');
+        if (res.isFinal) {
+          if (localFinalized.has(i)) continue;
+          const trimmed = text.trim();
+          if (!trimmed) continue;
+          const key = trimmed.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/\s+/g, ' ').toLowerCase();
+          if (localSeenKeys.has(key)) {
+            localFinalized.add(i);
+            continue;
+          }
+          localSeenKeys.add(key);
+          localFinalized.add(i);
+          finalTranscript += trimmed + ' ';
+        } else if (i >= event.resultIndex) {
+          // Only show currently-active interim (latest segment)
+          interim += text;
         }
       }
-      setTranscript(finalTranscript + interim);
+      setTranscript((finalTranscript + interim).trim());
     };
 
     recognition.onerror = () => setIsRecording(false);
     recognition.onend = () => {
       setIsRecording(false);
       if (finalTranscript.trim()) setTranscript(finalTranscript.trim());
+      localFinalized.clear();
+      localSeenKeys.clear();
     };
 
     recognitionRef.current = recognition;
