@@ -390,7 +390,11 @@ const TajweedChecker = () => {
               {report.errors.map((err, i) => {
                 const expanded = expandedError === i;
                 return (
-                  <div key={i} className={`rounded-lg border ${severityStyles[err.severity]} overflow-hidden`}>
+                  <div
+                    key={i}
+                    id={`tajweed-err-${i}`}
+                    className={`rounded-lg border ${severityStyles[err.severity]} overflow-hidden scroll-mt-20`}
+                  >
                     <button
                       onClick={() => setExpandedError(expanded ? null : i)}
                       className="w-full p-3 flex items-start gap-2 text-start"
