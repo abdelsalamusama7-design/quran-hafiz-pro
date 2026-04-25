@@ -336,6 +336,8 @@ const RecitationPage = () => {
     mistakeWordsRef.current = new Map();
     setSessionSummary(null);
     setSessionMistakes([]);
+    finalizedIndicesRef.current = new Set();
+    seenFinalKeysRef.current = new Set();
 
     // Update context ref
     liveContextRef.current = {
@@ -360,18 +362,28 @@ const RecitationPage = () => {
     recognition.interimResults = true;
 
     recognition.onresult = (event: any) => {
-      let finalPart = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalPart += event.results[i][0].transcript + ' ';
+      // Robust: iterate ALL results and skip ones we've already finalized.
+      // Also dedupe by normalized text content (some browsers re-emit identical
+      // finals across restarts). This eliminates the duplicated/garbled text.
+      let newFinalText = '';
+      for (let i = 0; i < event.results.length; i++) {
+        const res = event.results[i];
+        if (!res.isFinal) continue;
+        if (finalizedIndicesRef.current.has(i)) continue;
+        const text = (res[0]?.transcript || '').trim();
+        if (!text) continue;
+        const key = text.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/\s+/g, ' ').toLowerCase();
+        if (seenFinalKeysRef.current.has(key)) {
+          finalizedIndicesRef.current.add(i);
+          continue;
         }
+        seenFinalKeysRef.current.add(key);
+        finalizedIndicesRef.current.add(i);
+        newFinalText += text + ' ';
       }
 
-      const finalTrimmed = finalPart.trim();
+      const finalTrimmed = newFinalText.trim();
       if (!finalTrimmed) return;
-
-      // Dedupe: skip if same as last user text we added
-      if (finalTrimmed === lastUserTextRef.current) return;
       lastUserTextRef.current = finalTrimmed;
 
       // Accumulate transcript
@@ -409,8 +421,10 @@ const RecitationPage = () => {
     };
 
     recognition.onend = () => {
-      // Auto-restart if still meant to be listening
+      // Auto-restart if still meant to be listening. Reset the per-session
+      // index dedupe because the new session restarts indices from 0.
       if (isLiveListeningRef.current) {
+        finalizedIndicesRef.current = new Set();
         try { recognition.start(); } catch {}
       }
     };
