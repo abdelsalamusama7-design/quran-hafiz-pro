@@ -107,13 +107,28 @@ const TajweedChecker = () => {
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    // Robust dedupe — fixes duplicated/garbled text when browsers re-emit
+    // results from before resultIndex (Chrome Android quirk).
+    const finalizedIdx = new Set<number>();
+    const seenKeys = new Set<string>();
     let finalText = '';
     recognition.onresult = (e: any) => {
       let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t + ' ';
-        else interim += t;
+      for (let i = 0; i < e.results.length; i++) {
+        const res = e.results[i];
+        const t = res[0]?.transcript || '';
+        if (res.isFinal) {
+          if (finalizedIdx.has(i)) continue;
+          const trimmed = t.trim();
+          if (!trimmed) continue;
+          const key = trimmed.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/\s+/g, ' ').toLowerCase();
+          if (seenKeys.has(key)) { finalizedIdx.add(i); continue; }
+          seenKeys.add(key);
+          finalizedIdx.add(i);
+          finalText += trimmed + ' ';
+        } else if (i >= e.resultIndex) {
+          interim += t;
+        }
       }
       setTranscript((finalText + interim).trim());
     };
