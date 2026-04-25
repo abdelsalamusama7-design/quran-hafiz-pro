@@ -542,6 +542,12 @@ const RecitationPage = () => {
     accumulatedTranscriptRef.current = '';
     previousMistakesRef.current = [];
     msgIdRef.current = 0;
+    finalizedIndicesRef.current = new Set();
+    seenFinalKeysRef.current = new Set();
+    setTranscriptLog([]);
+    logIdRef.current = 0;
+    setEditingLogId(null);
+    setEditingText('');
 
     // Reset visible state
     setLiveAccuracy(null);
@@ -570,6 +576,73 @@ const RecitationPage = () => {
         : (lang === 'ar' ? 'اضغط ابدأ التسميع' : 'Press start to begin'),
     });
   }, [lang, selectedSurah, selectedVerse, toast]);
+
+  // HARD restart: stop any auto-restart loop, clear everything, optionally restart fresh
+  const hardRestartLive = useCallback(() => {
+    // 1. Tell auto-restart loop to die
+    isLiveListeningRef.current = false;
+    setIsLiveListening(false);
+    // 2. Cancel pending work
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    window.speechSynthesis.cancel();
+    // 3. Stop the recognition object cleanly
+    try { liveRecognitionRef.current?.abort?.(); } catch {}
+    try { liveRecognitionRef.current?.stop(); } catch {}
+    liveRecognitionRef.current = null;
+    // 4. Clear ALL state and dedupe
+    lastProcessedRef.current = '';
+    lastUserTextRef.current = '';
+    accumulatedTranscriptRef.current = '';
+    previousMistakesRef.current = [];
+    finalizedIndicesRef.current = new Set();
+    seenFinalKeysRef.current = new Set();
+    msgIdRef.current = 0;
+    logIdRef.current = 0;
+    setLiveMessages([]);
+    setTranscriptLog([]);
+    setTranscript('');
+    setLiveAccuracy(null);
+    setIsProcessing(false);
+    isProcessingRef.current = false;
+    setEditingLogId(null);
+    setEditingText('');
+    toast({
+      title: lang === 'ar' ? '🔌 إعادة تشغيل آمن' : '🔌 Safe restart',
+      description: lang === 'ar' ? 'تم إيقاف كل الحلقات. اضغط ابدأ من جديد.' : 'All loops stopped. Press start to begin.',
+    });
+  }, [lang, toast]);
+
+  // Edit / delete a transcript log entry. Edits to a 'final' entry rebuild
+  // accumulatedTranscript so subsequent AI calls use the corrected text.
+  const updateLogEntry = useCallback((id: number, newText: string) => {
+    setTranscriptLog(prev => {
+      const next = prev.map(e => e.id === id ? { ...e, text: newText } : e);
+      // Rebuild accumulated transcript from final entries only
+      const rebuilt = next.filter(e => e.status === 'final').map(e => e.text).join(' ').trim();
+      accumulatedTranscriptRef.current = rebuilt;
+      setTranscript(rebuilt);
+      return next;
+    });
+  }, []);
+
+  const deleteLogEntry = useCallback((id: number) => {
+    setTranscriptLog(prev => {
+      const next = prev.filter(e => e.id !== id);
+      const rebuilt = next.filter(e => e.status === 'final').map(e => e.text).join(' ').trim();
+      accumulatedTranscriptRef.current = rebuilt;
+      setTranscript(rebuilt);
+      // Also clean dedupe key for the deleted entry so it can be re-captured if user repeats
+      const removed = prev.find(e => e.id === id);
+      if (removed) {
+        const key = removed.text.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/\s+/g, ' ').toLowerCase();
+        seenFinalKeysRef.current.delete(key);
+      }
+      return next;
+    });
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
