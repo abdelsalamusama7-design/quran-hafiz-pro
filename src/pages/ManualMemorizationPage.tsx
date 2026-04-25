@@ -238,19 +238,35 @@ const ManualMemorizationPage = () => {
                           </p>
                         ) : (
                           <div className="flex items-center justify-between gap-2 py-1">
-                            <span className="text-xs text-muted-foreground font-arabic">
+                            <span className="text-xs text-muted-foreground font-arabic flex-1 min-w-0 truncate">
                               {lang === 'ar'
-                                ? `الآية ${toArabicNum(v.number)} — اقرأ من حفظك ثم اضغط للكشف`
-                                : `Verse ${v.number} — recite then tap to reveal`}
+                                ? `الآية ${toArabicNum(v.number)} — اقرأ من حفظك`
+                                : `Verse ${v.number} — recite from memory`}
                             </span>
-                            <div className="flex items-center gap-1 text-primary text-[11px] font-semibold shrink-0">
-                              <Eye size={12} />
-                              {lang === 'ar' ? 'كشف' : 'Reveal'}
-                            </div>
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => { e.stopPropagation(); toggleVerse(v.number); }}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleVerse(v.number); } }}
+                              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold shadow-sm hover:bg-primary/90 active:scale-95 transition-all cursor-pointer"
+                            >
+                              <Eye size={13} />
+                              {lang === 'ar' ? 'عرض النص' : 'Show text'}
+                            </span>
                           </div>
                         )}
                       </div>
                     </button>
+                    {isRevealed && (
+                      <div className="px-4 pb-3 -mt-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleVerse(v.number); }}
+                          className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                        >
+                          <EyeOff size={11} /> {lang === 'ar' ? 'إخفاء النص' : 'Hide text'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
