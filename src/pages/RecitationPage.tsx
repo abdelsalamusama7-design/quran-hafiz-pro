@@ -88,6 +88,19 @@ const RecitationPage = () => {
   // re-emit results from before resultIndex (Chrome Android bug)
   const finalizedIndicesRef = useRef<Set<number>>(new Set());
   const seenFinalKeysRef = useRef<Set<string>>(new Set());
+  // Visible log of accepted vs skipped (duplicate) chunks for the user
+  const [transcriptLog, setTranscriptLog] = useState<Array<{
+    id: number;
+    text: string;
+    status: 'final' | 'duplicate';
+    timestamp: number;
+  }>>([]);
+  const logIdRef = useRef(0);
+  const [showTranscriptLog, setShowTranscriptLog] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  // Show pre-session warmup once per session
+  const [warmupDone, setWarmupDone] = useState(false);
   const isProcessingRef = useRef(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const liveContextRef = useRef<{ surahId: number | null; verseNum: number; verseText: string; surahName: string }>({
