@@ -21,8 +21,99 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // ============ Arabic text normalization ============
+    // Removes diacritics, unifies hamza/alef/yaa/taa marbuta forms,
+    // strips tatweel & punctuation, collapses whitespace.
+    const normalizeArabic = (s: string): string => {
+      return s
+        // Remove tashkeel (fatha, kasra, damma, sukun, shadda, tanween, dagger alef)
+        .replace(/[\u064B-\u0652\u0670\u06D6-\u06ED\u08F0-\u08F3]/g, "")
+        // Remove tatweel
+        .replace(/\u0640/g, "")
+        // Unify alef forms
+        .replace(/[إأآٱ]/g, "ا")
+        // Unify yaa
+        .replace(/[ىئ]/g, "ي")
+        // Unify taa marbuta -> haa (common speech-to-text confusion)
+        .replace(/ة/g, "ه")
+        // Unify hamza on waw / standalone
+        .replace(/[ؤء]/g, "")
+        // Remove non-letter punctuation
+        .replace(/[^\u0600-\u06FF\s]/g, " ")
+        // Collapse whitespace
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    // Levenshtein distance for fuzzy word matching
+    const levenshtein = (a: string, b: string): number => {
+      if (a === b) return 0;
+      if (!a.length) return b.length;
+      if (!b.length) return a.length;
+      const m = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+      for (let i = 0; i <= a.length; i++) m[i][0] = i;
+      for (let j = 0; j <= b.length; j++) m[0][j] = j;
+      for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + cost);
+        }
+      }
+      return m[a.length][b.length];
+    };
+
+    // Align user words to correct words, marking which were close-enough matches
+    const alignTexts = (user: string, correct: string) => {
+      const userWords = user.split(/\s+/).filter(Boolean);
+      const correctWords = correct.split(/\s+/).filter(Boolean);
+      const aligned: string[] = [];
+      let ui = 0;
+      for (let ci = 0; ci < correctWords.length; ci++) {
+        const cw = correctWords[ci];
+        // Look ahead in user words within a small window
+        let bestIdx = -1;
+        let bestDist = Infinity;
+        const windowEnd = Math.min(userWords.length, ui + 3);
+        for (let k = ui; k < windowEnd; k++) {
+          const d = levenshtein(userWords[k], cw);
+          const threshold = Math.max(1, Math.floor(cw.length * 0.35));
+          if (d <= threshold && d < bestDist) {
+            bestDist = d;
+            bestIdx = k;
+          }
+        }
+        if (bestIdx !== -1) {
+          // Treat as a match — use the correct spelling so AI focuses on tajweed
+          aligned.push(cw);
+          ui = bestIdx + 1;
+        } else {
+          // Keep user's word as-is (real divergence)
+          if (ui < userWords.length) {
+            aligned.push(userWords[ui]);
+            ui++;
+          }
+        }
+      }
+      // Append any trailing user words
+      while (ui < userWords.length) {
+        aligned.push(userWords[ui]);
+        ui++;
+      }
+      return aligned.join(" ");
+    };
+
+    const normalizedCorrect = normalizeArabic(correctText);
+    const normalizedUser = normalizeArabic(userText);
+    const alignedUser = alignTexts(normalizedUser, normalizedCorrect);
+
     const systemPrompt = `أنت شيخ متخصص في علم التجويد وأحكام التلاوة برواية حفص عن عاصم.
 مهمتك: مقارنة تلاوة الطالب بالنص الصحيح واستخراج أخطاء التجويد بدقة عالية.
+
+قواعد مهمة قبل التحليل:
+- تجاهل تماماً الفروقات الإملائية البسيطة الناتجة عن التفريغ النصي (Speech-to-Text) مثل: غياب التشكيل، اختلاف رسم الهمزة (أ/إ/آ/ا)، الياء والألف المقصورة (ي/ى)، التاء المربوطة والهاء (ة/ه)، حذف أو إضافة حرف واحد بسبب خطأ التعرف الصوتي.
+- لا تعتبر هذه الفروقات أخطاء تلاوة. ركّز فقط على أحكام التجويد.
+- إذا كان الفرق بين كلمة الطالب والكلمة الصحيحة طفيفاً جداً (حرف أو حركة)، اعتبره مطابقاً واستخرج أخطاء التجويد المحتملة فيه.
+- فقط إذا كانت الكلمة مختلفة جوهرياً أو محذوفة كلياً، أشر إلى ذلك كخطأ تلاوة لا تجويد.
 
 ركّز على هذه الأحكام:
 - أحكام النون الساكنة والتنوين (إظهار، إدغام، إقلاب، إخفاء)
@@ -41,13 +132,19 @@ serve(async (req) => {
 - اقترح تمريناً عملياً سريعاً للتصحيح`;
 
     const userPrompt = `سورة ${surahName} - الآية ${verseNumber}
-النص الصحيح:
+النص الصحيح (الأصلي مع التشكيل):
 "${correctText}"
 
-تلاوة الطالب (مفرّغة نصياً):
+النص الصحيح (مطبَّع بدون تشكيل):
+"${normalizedCorrect}"
+
+تلاوة الطالب الأصلية (مفرّغة من Speech-to-Text):
 "${userText}"
 
-استخرج أخطاء التجويد فقط (وليس أخطاء الكلمات) وقدّم تصحيحاً فورياً.`;
+تلاوة الطالب بعد التطبيع والمحاذاة الذكية (تم تصحيح الأخطاء الإملائية البسيطة تلقائياً):
+"${alignedUser}"
+
+اعتمد على النص المطبَّع والمحاذى للحكم على المطابقة، واستخرج أخطاء التجويد فقط (وليس أخطاء التفريغ النصي) وقدّم تصحيحاً فورياً.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
