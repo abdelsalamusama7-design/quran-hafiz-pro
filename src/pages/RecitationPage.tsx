@@ -1069,7 +1069,120 @@ const RecitationPage = () => {
                 <span className="hidden sm:inline text-sm">{lang === 'ar' ? 'إعادة' : 'Reset'}</span>
               </button>
             )}
+            {(isLiveListening || transcriptLog.length > 0) && (
+              <button
+                onClick={hardRestartLive}
+                title={lang === 'ar' ? 'إعادة تشغيل آمن' : 'Safe restart'}
+                className="px-4 py-4 bg-destructive/10 border-2 border-destructive/40 text-destructive rounded-2xl font-bold flex items-center justify-center gap-1.5 shadow-md hover:bg-destructive/15 active:scale-95 transition-all"
+              >
+                <Power size={18} />
+                <span className="hidden sm:inline text-sm">{lang === 'ar' ? 'إيقاف آمن' : 'Safe stop'}</span>
+              </button>
+            )}
           </div>
+
+          {/* Transcript Log: accepted finals + skipped duplicates */}
+          {transcriptLog.length > 0 && (
+            <div className="bg-card rounded-xl shadow-islamic overflow-hidden border border-border/60">
+              <button
+                onClick={() => setShowTranscriptLog(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-muted/40 hover:bg-muted/60 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <ListChecks size={16} className="text-primary" />
+                  <span className="text-xs font-bold text-foreground">
+                    {lang === 'ar' ? 'سجل التفريغ النصي' : 'Transcript log'}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {transcriptLog.filter(e => e.status === 'final').length} {lang === 'ar' ? 'مقبول' : 'accepted'}
+                    {' · '}
+                    {transcriptLog.filter(e => e.status === 'duplicate').length} {lang === 'ar' ? 'مكرر' : 'duplicates'}
+                  </span>
+                </div>
+                <ChevronDown size={14} className={`transition-transform ${showTranscriptLog ? 'rotate-180' : ''}`} />
+              </button>
+              {showTranscriptLog && (
+                <div className="max-h-64 overflow-y-auto p-2 space-y-1.5">
+                  {transcriptLog.map(entry => (
+                    <div
+                      key={entry.id}
+                      className={`rounded-lg p-2 border ${
+                        entry.status === 'final'
+                          ? 'bg-primary/5 border-primary/20'
+                          : 'bg-muted/40 border-border/50 opacity-70'
+                      }`}
+                    >
+                      {editingLogId === entry.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                updateLogEntry(entry.id, editingText.trim());
+                                setEditingLogId(null);
+                              }
+                              if (e.key === 'Escape') setEditingLogId(null);
+                            }}
+                            autoFocus
+                            dir="rtl"
+                            className="flex-1 font-quran text-sm bg-background text-foreground rounded px-2 py-1 border border-primary/40 outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                          <button
+                            onClick={() => { updateLogEntry(entry.id, editingText.trim()); setEditingLogId(null); }}
+                            className="w-7 h-7 rounded bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90"
+                            title={lang === 'ar' ? 'حفظ' : 'Save'}
+                          >
+                            <Check size={12} />
+                          </button>
+                          <button
+                            onClick={() => setEditingLogId(null)}
+                            className="w-7 h-7 rounded bg-muted text-foreground flex items-center justify-center hover:bg-muted/80"
+                            title={lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                            entry.status === 'final'
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-muted-foreground/20 text-muted-foreground line-through'
+                          }`}>
+                            {entry.status === 'final'
+                              ? (lang === 'ar' ? '✓ مقبول' : '✓ Final')
+                              : (lang === 'ar' ? '✕ مكرر' : '✕ Dup')}
+                          </span>
+                          <p className={`flex-1 font-quran text-sm text-right ${
+                            entry.status === 'duplicate' ? 'line-through text-muted-foreground' : 'text-foreground'
+                          }`} dir="rtl">
+                            {entry.text}
+                          </p>
+                          {entry.status === 'final' && (
+                            <button
+                              onClick={() => { setEditingLogId(entry.id); setEditingText(entry.text); }}
+                              className="w-7 h-7 rounded text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center shrink-0"
+                              title={lang === 'ar' ? 'تعديل' : 'Edit'}
+                            >
+                              <Pencil size={11} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteLogEntry(entry.id)}
+                            className="w-7 h-7 rounded text-destructive/70 hover:text-destructive hover:bg-destructive/10 flex items-center justify-center shrink-0"
+                            title={lang === 'ar' ? 'حذف' : 'Delete'}
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Tips */}
           <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground space-y-1">
