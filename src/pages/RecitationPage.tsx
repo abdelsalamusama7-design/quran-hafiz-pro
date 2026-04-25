@@ -895,6 +895,11 @@ const RecitationPage = () => {
       {/* === LIVE LISTEN MODE === */}
       {mode === 'live-listen' && selectedSurah && verses.length > 0 && (
         <div className="space-y-4">
+          {/* Pre-session warmup (mic calibration + quick pronunciation test) */}
+          {!warmupDone && (
+            <PreSessionWarmup onReady={() => setWarmupDone(true)} />
+          )}
+
           {/* Open fullscreen Mushaf-style reading view */}
           <button
             onClick={() => setMushafOpen(true)}
