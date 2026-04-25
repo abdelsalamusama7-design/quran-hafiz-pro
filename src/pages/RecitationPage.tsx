@@ -380,6 +380,7 @@ const RecitationPage = () => {
       // Also dedupe by normalized text content (some browsers re-emit identical
       // finals across restarts). This eliminates the duplicated/garbled text.
       let newFinalText = '';
+      const newLogEntries: Array<{ id: number; text: string; status: 'final' | 'duplicate'; timestamp: number }> = [];
       for (let i = 0; i < event.results.length; i++) {
         const res = event.results[i];
         if (!res.isFinal) continue;
@@ -389,11 +390,17 @@ const RecitationPage = () => {
         const key = text.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/\s+/g, ' ').toLowerCase();
         if (seenFinalKeysRef.current.has(key)) {
           finalizedIndicesRef.current.add(i);
+          newLogEntries.push({ id: ++logIdRef.current, text, status: 'duplicate', timestamp: Date.now() });
           continue;
         }
         seenFinalKeysRef.current.add(key);
         finalizedIndicesRef.current.add(i);
         newFinalText += text + ' ';
+        newLogEntries.push({ id: ++logIdRef.current, text, status: 'final', timestamp: Date.now() });
+      }
+
+      if (newLogEntries.length) {
+        setTranscriptLog(prev => [...prev, ...newLogEntries]);
       }
 
       const finalTrimmed = newFinalText.trim();
