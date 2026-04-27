@@ -8,6 +8,7 @@ import { useAudioQuality, type AudioQuality } from '@/hooks/useAudioQuality';
 import SessionSummaryModal, { type SessionSummary } from '@/components/SessionSummaryModal';
 import MushafRecitationView from '@/components/MushafRecitationView';
 import PreSessionWarmup from '@/components/PreSessionWarmup';
+import StickyStartBar from '@/components/StickyStartBar';
 import { surahs } from '@/data/surahs';
 import { Mic, MicOff, Loader2, CheckCircle, AlertTriangle, RotateCcw, ChevronDown, Sparkles, Eye, EyeOff, Zap, MessageCircle, Volume2, VolumeX, RefreshCw, BookOpen, ListChecks, Trash2, Pencil, X, Check, Power } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -936,27 +937,15 @@ const RecitationPage = () => {
         const stopLabel = lang === 'ar' ? '⏹️ إيقاف التسميع' : '⏹️ Stop';
 
         return (
-          <div className="sticky top-2 z-30 -mx-1">
-            <div className="bg-background/85 backdrop-blur-md rounded-2xl p-2 shadow-lg border border-border/50">
-              <button
-                onClick={() => { if (active) onStop(); else onStart(); }}
-                disabled={isAnalyzing}
-                className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-3 shadow-md active:scale-[0.98] transition-all ${
-                  active
-                    ? 'bg-destructive text-destructive-foreground animate-pulse'
-                    : 'bg-gradient-to-r from-primary to-emerald-600 text-primary-foreground'
-                }`}
-              >
-                {active ? <MicOff size={22} /> : <Mic size={22} />}
-                <span className="font-arabic">{active ? stopLabel : startLabel}</span>
-              </button>
-              {active && (
-                <p className="text-[11px] text-center text-muted-foreground mt-1.5 font-arabic">
-                  {lang === 'ar' ? '🔴 يستمع الآن... اقرأ بصوت واضح' : '🔴 Listening... read clearly'}
-                </p>
-              )}
-            </div>
-          </div>
+          <StickyStartBar
+            active={active}
+            onStart={onStart}
+            onStop={onStop}
+            disabled={isAnalyzing}
+            startLabel={startLabel}
+            stopLabel={stopLabel}
+            activeHint={lang === 'ar' ? '🔴 يستمع الآن... اقرأ بصوت واضح' : '🔴 Listening... read clearly'}
+          />
         );
       })()}
 
