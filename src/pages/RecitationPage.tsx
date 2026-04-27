@@ -404,6 +404,20 @@ const RecitationPage = () => {
     if (!verse) return;
     const surah = surahs.find(s => s.id === selectedSurah);
 
+    // Proactively request mic permission so user gets the prompt explicitly.
+    // Some browsers silently block speech recognition without this.
+    if (navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => stream.getTracks().forEach(t => t.stop()))
+        .catch(() => {
+          toast({
+            title: lang === 'ar' ? '🎙️ يحتاج الإذن للميكروفون' : '🎙️ Mic permission needed',
+            description: lang === 'ar' ? 'اسمح للمتصفح باستخدام الميكروفون ثم اضغط ابدأ مرة أخرى' : 'Allow microphone access then press start again',
+            variant: 'destructive',
+          });
+        });
+    }
+
     // Reset state for new session
     setLiveMessages([]);
     setLiveAccuracy(null);
@@ -526,7 +540,19 @@ const RecitationPage = () => {
     liveRecognitionRef.current = recognition;
     isLiveListeningRef.current = true;
     setIsLiveListening(true);
-    try { recognition.start(); } catch {}
+    try {
+      recognition.start();
+      toast({
+        title: lang === 'ar' ? '✅ بدأ التسميع' : '✅ Started',
+        description: lang === 'ar' ? 'اقرأ بصوت واضح' : 'Read clearly',
+      });
+    } catch (err) {
+      toast({
+        title: lang === 'ar' ? '⚠️ تعذّر بدء التسميع' : '⚠️ Could not start',
+        description: lang === 'ar' ? 'حاول مرة أخرى' : 'Please try again',
+        variant: 'destructive',
+      });
+    }
   }, [selectedSurah, selectedVerse, verses, lang, toast, sendLiveCorrection]);
 
   const stopLiveListening = useCallback(() => {
@@ -893,6 +919,46 @@ const RecitationPage = () => {
   return (
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
       <PageHeader title={lang === 'ar' ? '🎤 تصحيح التلاوة' : '🎤 Recitation'} />
+
+      {/* === STICKY TOP ACTION BAR — always-visible Start/Stop button === */}
+      {(() => {
+        const isLive = mode === 'live-listen';
+        const liveReady = !!selectedSurah && verses.length > 0;
+        const otherReady = mode === 'auto-detect' || ((mode === 'correct' || mode === 'blind' || mode === 'practice') && !!selectedSurah && verses.length > 0);
+        const showLive = isLive && liveReady;
+        const showOther = !isLive && otherReady;
+        if (!showLive && !showOther) return null;
+
+        const active = isLive ? isLiveListening : isRecording;
+        const onStart = isLive ? startLiveListening : startRecording;
+        const onStop = isLive ? stopLiveListening : stopRecording;
+        const startLabel = lang === 'ar' ? '🎤 ابدأ التسميع' : '🎤 Start Recitation';
+        const stopLabel = lang === 'ar' ? '⏹️ إيقاف التسميع' : '⏹️ Stop';
+
+        return (
+          <div className="sticky top-2 z-30 -mx-1">
+            <div className="bg-background/85 backdrop-blur-md rounded-2xl p-2 shadow-lg border border-border/50">
+              <button
+                onClick={() => { if (active) onStop(); else onStart(); }}
+                disabled={isAnalyzing}
+                className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-3 shadow-md active:scale-[0.98] transition-all ${
+                  active
+                    ? 'bg-destructive text-destructive-foreground animate-pulse'
+                    : 'bg-gradient-to-r from-primary to-emerald-600 text-primary-foreground'
+                }`}
+              >
+                {active ? <MicOff size={22} /> : <Mic size={22} />}
+                <span className="font-arabic">{active ? stopLabel : startLabel}</span>
+              </button>
+              {active && (
+                <p className="text-[11px] text-center text-muted-foreground mt-1.5 font-arabic">
+                  {lang === 'ar' ? '🔴 يستمع الآن... اقرأ بصوت واضح' : '🔴 Listening... read clearly'}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Mode Selector */}
       <div className="grid grid-cols-2 gap-2">
