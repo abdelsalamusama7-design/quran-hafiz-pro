@@ -761,6 +761,19 @@ const RecitationPage = () => {
       return;
     }
 
+    // Proactively request mic permission for explicit prompt
+    if (navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => stream.getTracks().forEach(t => t.stop()))
+        .catch(() => {
+          toast({
+            title: lang === 'ar' ? '🎙️ يحتاج إذن الميكروفون' : '🎙️ Mic permission needed',
+            description: lang === 'ar' ? 'اسمح للمتصفح ثم اضغط ابدأ مرة أخرى' : 'Allow access then press start again',
+            variant: 'destructive',
+          });
+        });
+    }
+
     const recognition = new SpeechRecognition();
     recognition.lang = 'ar-SA';
     recognition.continuous = true;
@@ -795,7 +808,16 @@ const RecitationPage = () => {
       setTranscript((finalTranscript + interim).trim());
     };
 
-    recognition.onerror = () => setIsRecording(false);
+    recognition.onerror = (e: any) => {
+      setIsRecording(false);
+      if (e?.error && e.error !== 'no-speech' && e.error !== 'aborted') {
+        toast({
+          title: lang === 'ar' ? '⚠️ خطأ في التسجيل' : '⚠️ Recording error',
+          description: lang === 'ar' ? 'حاول مرة أخرى' : 'Please try again',
+          variant: 'destructive',
+        });
+      }
+    };
     recognition.onend = () => {
       setIsRecording(false);
       if (finalTranscript.trim()) setTranscript(finalTranscript.trim());
@@ -804,8 +826,19 @@ const RecitationPage = () => {
     };
 
     recognitionRef.current = recognition;
-    recognition.start();
-    setIsRecording(true);
+    try {
+      recognition.start();
+      setIsRecording(true);
+      toast({
+        title: lang === 'ar' ? '✅ بدأ التسجيل' : '✅ Recording started',
+        description: lang === 'ar' ? 'اقرأ بصوت واضح' : 'Read clearly',
+      });
+    } catch {
+      toast({
+        title: lang === 'ar' ? '⚠️ تعذّر بدء التسجيل' : '⚠️ Could not start',
+        variant: 'destructive',
+      });
+    }
     setResult(null);
     setDetectedVerses([]);
     setDetectionFeedback('');
@@ -815,6 +848,10 @@ const RecitationPage = () => {
   const stopRecording = () => {
     recognitionRef.current?.stop();
     setIsRecording(false);
+    toast({
+      title: lang === 'ar' ? '⏹️ تم الإيقاف' : '⏹️ Stopped',
+      description: lang === 'ar' ? 'يمكنك الآن تحليل التلاوة' : 'You can now analyze',
+    });
   };
 
   const autoDetectVerse = async () => {
