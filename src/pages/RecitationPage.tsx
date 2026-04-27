@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import MicLevelIndicator from '@/components/MicLevelIndicator';
+import AudioQualityAlert from '@/components/AudioQualityAlert';
+import { useAudioQuality, type AudioQuality } from '@/hooks/useAudioQuality';
 import SessionSummaryModal, { type SessionSummary } from '@/components/SessionSummaryModal';
 import MushafRecitationView from '@/components/MushafRecitationView';
 import PreSessionWarmup from '@/components/PreSessionWarmup';
