@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import MicLevelIndicator from '@/components/MicLevelIndicator';
+import AudioQualityAlert from '@/components/AudioQualityAlert';
+import { useAudioQuality, type AudioQuality } from '@/hooks/useAudioQuality';
 import SessionSummaryModal, { type SessionSummary } from '@/components/SessionSummaryModal';
 import MushafRecitationView from '@/components/MushafRecitationView';
 import PreSessionWarmup from '@/components/PreSessionWarmup';
@@ -138,6 +140,75 @@ const RecitationPage = () => {
   useEffect(() => { autoAdvanceRef.current = autoAdvance; }, [autoAdvance]);
   const versesRef = useRef(verses);
   useEffect(() => { versesRef.current = verses; }, [verses]);
+
+  // === Audio quality monitoring (live-listen mode) ===
+  const [qualityDismissed, setQualityDismissed] = useState(false);
+  const [autoRestartCountdown, setAutoRestartCountdown] = useState<number | null>(null);
+  const autoRestartTimerRef = useRef<number | null>(null);
+
+  const cancelAutoRestart = useCallback(() => {
+    if (autoRestartTimerRef.current) {
+      window.clearInterval(autoRestartTimerRef.current);
+      autoRestartTimerRef.current = null;
+    }
+    setAutoRestartCountdown(null);
+  }, []);
+
+  const handleQualityIssue = useCallback((q: AudioQuality) => {
+    if (q === 'good' || q === 'idle') return;
+    if (qualityDismissed) return;
+    // Only auto-restart on silent/noisy after a short countdown; low = warn only
+    if (q === 'silent' || q === 'noisy') {
+      // Avoid stacking timers
+      if (autoRestartTimerRef.current) return;
+      let remaining = 6;
+      setAutoRestartCountdown(remaining);
+      autoRestartTimerRef.current = window.setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          cancelAutoRestart();
+          // Soft restart: stop + restart listening to get a fresh stream
+          if (isLiveListeningRef.current) {
+            try { liveRecognitionRef.current?.abort?.(); } catch {}
+            try { liveRecognitionRef.current?.stop(); } catch {}
+            setTimeout(() => {
+              if (isLiveListeningRef.current) {
+                try { startLiveListening(); } catch {}
+              }
+            }, 400);
+            toast({
+              title: lang === 'ar' ? '🔄 إعادة تسجيل تلقائية' : '🔄 Auto-restart',
+              description: lang === 'ar' ? 'تم إعادة تشغيل الميكروفون لتحسين جودة التسجيل.' : 'Mic restarted to improve quality.',
+            });
+          }
+        } else {
+          setAutoRestartCountdown(remaining);
+        }
+      }, 1000);
+    }
+  }, [qualityDismissed, cancelAutoRestart, lang, toast]);
+
+  const audioQuality = useAudioQuality({
+    active: isLiveListening && mode === 'live-listen',
+    onIssue: handleQualityIssue,
+  });
+
+  // Reset dismissed flag + cancel pending restart whenever listening toggles
+  useEffect(() => {
+    if (!isLiveListening) {
+      cancelAutoRestart();
+      setQualityDismissed(false);
+    }
+  }, [isLiveListening, cancelAutoRestart]);
+
+  // If quality recovers to 'good', cancel pending auto-restart
+  useEffect(() => {
+    if (audioQuality.quality === 'good' && autoRestartTimerRef.current) {
+      cancelAutoRestart();
+    }
+  }, [audioQuality.quality, cancelAutoRestart]);
+
+  useEffect(() => () => cancelAutoRestart(), [cancelAutoRestart]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -1038,6 +1109,23 @@ const RecitationPage = () => {
               </div>
               {isProcessing && <Loader2 size={14} className="text-primary animate-spin" />}
             </div>
+          )}
+
+          {isLiveListening && mode === 'live-listen' && (
+            <AudioQualityAlert
+              quality={audioQuality.quality}
+              level={audioQuality.level}
+              autoRestartIn={autoRestartCountdown}
+              onRestart={() => {
+                cancelAutoRestart();
+                hardRestartLive();
+                setTimeout(() => { try { startLiveListening(); } catch {} }, 350);
+              }}
+              onDismiss={() => {
+                cancelAutoRestart();
+                setQualityDismissed(true);
+              }}
+            />
           )}
 
           {/* Control buttons */}
