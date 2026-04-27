@@ -1111,6 +1111,23 @@ const RecitationPage = () => {
             </div>
           )}
 
+          {isLiveListening && mode === 'live-listen' && (
+            <AudioQualityAlert
+              quality={audioQuality.quality}
+              level={audioQuality.level}
+              autoRestartIn={autoRestartCountdown}
+              onRestart={() => {
+                cancelAutoRestart();
+                hardRestartLive();
+                setTimeout(() => { try { startLiveListening(); } catch {} }, 350);
+              }}
+              onDismiss={() => {
+                cancelAutoRestart();
+                setQualityDismissed(true);
+              }}
+            />
+          )}
+
           {/* Control buttons */}
           <div className="flex gap-2">
             {!isLiveListening ? (
