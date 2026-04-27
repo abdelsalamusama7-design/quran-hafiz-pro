@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2, Play, Pause } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
+import StickyStartBar from '@/components/StickyStartBar';
+import { toast } from 'sonner';
 
 interface Verse {
   number: number;
@@ -58,9 +60,15 @@ const ManualMemorizationPage = () => {
     if (showAll || revealed.size === verses.length) {
       setRevealed(new Set());
       setShowAll(false);
+      toast.success(lang === 'ar' ? '⏸️ تم إخفاء كل النص' : '⏸️ All text hidden', {
+        description: lang === 'ar' ? 'اقرأ من حفظك' : 'Recite from memory',
+      });
     } else {
       setRevealed(new Set(verses.map(v => v.number)));
       setShowAll(true);
+      toast.success(lang === 'ar' ? '✅ تم عرض كل النص' : '✅ All text shown', {
+        description: lang === 'ar' ? 'تحقق من حفظك' : 'Verify your memorization',
+      });
     }
   };
 
@@ -72,6 +80,8 @@ const ManualMemorizationPage = () => {
   const progress = verses.length ? Math.round((revealed.size / verses.length) * 100) : 0;
   const ArrowBack = lang === 'ar' ? ArrowRight : ArrowLeft;
   const ArrowFwd = lang === 'ar' ? ArrowLeft : ArrowRight;
+
+  const sessionActive = revealed.size > 0;
 
   return (
     <div className="pb-28 max-w-lg mx-auto min-h-screen bg-background">
@@ -177,6 +187,23 @@ const ManualMemorizationPage = () => {
           </div>
         )}
       </div>
+
+      {/* Sticky start/stop bar — consistent with other recitation tools */}
+      {verses.length > 0 && (
+        <div className="px-4 pt-3">
+          <StickyStartBar
+            active={sessionActive}
+            onStart={toggleAll}
+            onStop={toggleAll}
+            startLabel={lang === 'ar' ? '📖 ابدأ المراجعة' : '📖 Start Review'}
+            stopLabel={lang === 'ar' ? '⏸️ إخفاء النص' : '⏸️ Hide Text'}
+            hint={lang === 'ar' ? 'اقرأ من حفظك ثم اضغط لكشف النص للتحقق' : 'Recite from memory then tap to reveal'}
+            activeHint={lang === 'ar' ? '🟢 وضع المراجعة نشط — تحقق من حفظك' : '🟢 Review mode active — verify your memory'}
+            StartIcon={Play}
+            StopIcon={Pause}
+          />
+        </div>
+      )}
 
       {/* Body */}
       <div className="px-4 py-4">
