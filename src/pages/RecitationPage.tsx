@@ -404,6 +404,20 @@ const RecitationPage = () => {
     if (!verse) return;
     const surah = surahs.find(s => s.id === selectedSurah);
 
+    // Proactively request mic permission so user gets the prompt explicitly.
+    // Some browsers silently block speech recognition without this.
+    if (navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => stream.getTracks().forEach(t => t.stop()))
+        .catch(() => {
+          toast({
+            title: lang === 'ar' ? '🎙️ يحتاج الإذن للميكروفون' : '🎙️ Mic permission needed',
+            description: lang === 'ar' ? 'اسمح للمتصفح باستخدام الميكروفون ثم اضغط ابدأ مرة أخرى' : 'Allow microphone access then press start again',
+            variant: 'destructive',
+          });
+        });
+    }
+
     // Reset state for new session
     setLiveMessages([]);
     setLiveAccuracy(null);
@@ -526,7 +540,19 @@ const RecitationPage = () => {
     liveRecognitionRef.current = recognition;
     isLiveListeningRef.current = true;
     setIsLiveListening(true);
-    try { recognition.start(); } catch {}
+    try {
+      recognition.start();
+      toast({
+        title: lang === 'ar' ? '✅ بدأ التسميع' : '✅ Started',
+        description: lang === 'ar' ? 'اقرأ بصوت واضح' : 'Read clearly',
+      });
+    } catch (err) {
+      toast({
+        title: lang === 'ar' ? '⚠️ تعذّر بدء التسميع' : '⚠️ Could not start',
+        description: lang === 'ar' ? 'حاول مرة أخرى' : 'Please try again',
+        variant: 'destructive',
+      });
+    }
   }, [selectedSurah, selectedVerse, verses, lang, toast, sendLiveCorrection]);
 
   const stopLiveListening = useCallback(() => {
