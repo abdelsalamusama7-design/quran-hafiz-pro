@@ -894,6 +894,46 @@ const RecitationPage = () => {
     <div className="pb-24 px-4 pt-6 max-w-lg mx-auto space-y-4">
       <PageHeader title={lang === 'ar' ? '🎤 تصحيح التلاوة' : '🎤 Recitation'} />
 
+      {/* === STICKY TOP ACTION BAR — always-visible Start/Stop button === */}
+      {(() => {
+        const isLive = mode === 'live-listen';
+        const liveReady = !!selectedSurah && verses.length > 0;
+        const otherReady = mode === 'auto-detect' || ((mode === 'correct' || mode === 'blind' || mode === 'practice') && !!selectedSurah && verses.length > 0);
+        const showLive = isLive && liveReady;
+        const showOther = !isLive && otherReady;
+        if (!showLive && !showOther) return null;
+
+        const active = isLive ? isLiveListening : isRecording;
+        const onStart = isLive ? startLiveListening : startRecording;
+        const onStop = isLive ? stopLiveListening : stopRecording;
+        const startLabel = lang === 'ar' ? '🎤 ابدأ التسميع' : '🎤 Start Recitation';
+        const stopLabel = lang === 'ar' ? '⏹️ إيقاف التسميع' : '⏹️ Stop';
+
+        return (
+          <div className="sticky top-2 z-30 -mx-1">
+            <div className="bg-background/85 backdrop-blur-md rounded-2xl p-2 shadow-lg border border-border/50">
+              <button
+                onClick={() => { if (active) onStop(); else onStart(); }}
+                disabled={isAnalyzing}
+                className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-3 shadow-md active:scale-[0.98] transition-all ${
+                  active
+                    ? 'bg-destructive text-destructive-foreground animate-pulse'
+                    : 'bg-gradient-to-r from-primary to-emerald-600 text-primary-foreground'
+                }`}
+              >
+                {active ? <MicOff size={22} /> : <Mic size={22} />}
+                <span className="font-arabic">{active ? stopLabel : startLabel}</span>
+              </button>
+              {active && (
+                <p className="text-[11px] text-center text-muted-foreground mt-1.5 font-arabic">
+                  {lang === 'ar' ? '🔴 يستمع الآن... اقرأ بصوت واضح' : '🔴 Listening... read clearly'}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Mode Selector */}
       <div className="grid grid-cols-2 gap-2">
         {modes.map(m => (
