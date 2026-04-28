@@ -442,6 +442,106 @@ const CommunityPage = () => {
           )}
         </>
       )}
+
+      {/* === Teacher Mode Overlay === */}
+      {teacherCircleId && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md overflow-y-auto">
+          <div className="max-w-lg mx-auto px-4 pt-4 pb-32">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-primary" />
+                <h2 className="font-bold text-base">
+                  {lang === 'ar' ? 'وضع المعلم' : 'Teacher Mode'}
+                </h2>
+              </div>
+              <Button size="sm" variant="ghost" onClick={closeTeacherMode} disabled={followActive}>
+                {lang === 'ar' ? 'إغلاق' : 'Close'}
+              </Button>
+            </div>
+
+            {/* Sticky start/stop bar — consistent with recitation tools */}
+            <StickyStartBar
+              active={followActive}
+              onStart={startFollow}
+              onStop={() => stopFollow()}
+              startLabel={lang === 'ar' ? '🎓 ابدأ متابعة الطالب' : '🎓 Start Following Student'}
+              stopLabel={lang === 'ar' ? '⏹️ إيقاف المتابعة' : '⏹️ Stop Following'}
+              hint={lang === 'ar' ? 'اختر طالبًا ثم اضغط لبدء جلسة المتابعة' : 'Select a student, then start the follow session'}
+              activeHint={lang === 'ar' ? `🟢 تتابع الآن: ${selectedStudent?.display_name ?? ''}` : `🟢 Following: ${selectedStudent?.display_name ?? ''}`}
+              StartIcon={Headphones}
+              StopIcon={Square}
+              disabled={!selectedStudent}
+            />
+
+            {/* Student picker */}
+            <div className="mt-4 space-y-2">
+              <p className="text-xs text-muted-foreground font-medium">
+                {lang === 'ar' ? 'الطالب الحالي' : 'Current student'}
+              </p>
+              <button
+                onClick={() => !followActive && setShowStudentPicker(v => !v)}
+                disabled={followActive}
+                className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-card border border-border text-start disabled:opacity-60"
+              >
+                <span className="font-medium text-sm truncate">
+                  {selectedStudent?.display_name || (lang === 'ar' ? 'اختر طالبًا...' : 'Pick a student...')}
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showStudentPicker ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showStudentPicker && (
+                <div className="max-h-64 overflow-y-auto border border-border rounded-xl bg-card divide-y divide-border">
+                  {circleMembers.length === 0 ? (
+                    <p className="text-center py-6 text-xs text-muted-foreground">
+                      {lang === 'ar' ? 'لا يوجد طلاب في الحلقة' : 'No students in this circle'}
+                    </p>
+                  ) : circleMembers.map(m => (
+                    <button
+                      key={m.user_id}
+                      onClick={() => { setSelectedStudent(m); setShowStudentPicker(false); }}
+                      className={`w-full text-start px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-muted ${
+                        selectedStudent?.user_id === m.user_id ? 'bg-primary/10 text-primary font-semibold' : ''
+                      }`}
+                    >
+                      <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                        {m.display_name?.[0]?.toUpperCase() || '?'}
+                      </div>
+                      <span className="truncate">{m.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Session status card */}
+            <Card className="mt-4">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {lang === 'ar' ? 'الحالة' : 'Status'}
+                  </span>
+                  <span className={`font-bold ${followActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {followActive
+                      ? (lang === 'ar' ? '🟢 المتابعة نشطة' : '🟢 Active')
+                      : (lang === 'ar' ? '⚪ غير نشط' : '⚪ Idle')}
+                  </span>
+                </div>
+                {followActive && followStart && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {lang === 'ar' ? 'بدأت في' : 'Started at'}{' '}
+                    {new Date(followStart).toLocaleTimeString(lang === 'ar' ? 'ar-EG' : 'en-US')}
+                  </p>
+                )}
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {lang === 'ar'
+                    ? 'أثناء الجلسة، استمع للطالب وسجّل ملاحظاتك. ستظهر إشعارات عند البدء والإيقاف.'
+                    : 'During the session, listen to the student. Toasts notify on start and stop.'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
