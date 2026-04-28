@@ -87,6 +87,31 @@ const HomePage = () => {
       <IslamicHeader />
       <StatsCards />
 
+      {/* Highlighted: Manual Memorization — silent, paper-style review (no mic / no recording) */}
+      <button
+        onClick={() => navigate('/manual-memorization')}
+        className="group relative w-full text-start overflow-hidden rounded-2xl border-2 border-lime-500/40 bg-gradient-to-br from-lime-500/15 via-card to-emerald-500/10 p-4 shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] animate-fade-in"
+      >
+        <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-lime-500/20 text-lime-700 dark:text-lime-300 text-[10px] font-bold">
+          {lang === 'ar' ? '📵 بدون ميكروفون' : '📵 No mic needed'}
+        </span>
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-lime-500 to-emerald-600 flex items-center justify-center text-white shadow-lg ring-4 ring-lime-400/30 group-hover:scale-110 transition-transform duration-300">
+            <Hand className="w-7 h-7 drop-shadow" strokeWidth={2.2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-foreground font-arabic text-base leading-tight">
+              {lang === 'ar' ? '✋ الحفظ اليدوي' : '✋ Manual Memorization'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 leading-snug font-arabic">
+              {lang === 'ar'
+                ? 'ورقة فاضية — احفظ مع نفسك، واضغط لكشف كل آية للتحقق. بدون استماع ولا تسجيل.'
+                : 'Blank page — recite from memory, tap to reveal each verse. No listening or recording.'}
+            </p>
+          </div>
+        </div>
+      </button>
+
       {/* Recitation Modes — surfaced from /recitation for instant access */}
       <div>
         <div className="flex items-center justify-between mb-3">
