@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2, Play, Pause } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
-import StickyStartBar from '@/components/StickyStartBar';
 import { toast } from 'sonner';
 
 interface Verse {
@@ -80,8 +79,6 @@ const ManualMemorizationPage = () => {
   const progress = verses.length ? Math.round((revealed.size / verses.length) * 100) : 0;
   const ArrowBack = lang === 'ar' ? ArrowRight : ArrowLeft;
   const ArrowFwd = lang === 'ar' ? ArrowLeft : ArrowRight;
-
-  const sessionActive = revealed.size > 0;
 
   return (
     <div className="pb-28 max-w-lg mx-auto min-h-screen bg-background">
@@ -188,24 +185,7 @@ const ManualMemorizationPage = () => {
         )}
       </div>
 
-      {/* Sticky start/stop bar — consistent with other recitation tools */}
-      {verses.length > 0 && (
-        <div className="px-4 pt-3">
-          <StickyStartBar
-            active={sessionActive}
-            onStart={toggleAll}
-            onStop={toggleAll}
-            startLabel={lang === 'ar' ? '📖 ابدأ المراجعة' : '📖 Start Review'}
-            stopLabel={lang === 'ar' ? '⏸️ إخفاء النص' : '⏸️ Hide Text'}
-            hint={lang === 'ar' ? 'اقرأ من حفظك ثم اضغط لكشف النص للتحقق' : 'Recite from memory then tap to reveal'}
-            activeHint={lang === 'ar' ? '🟢 وضع المراجعة نشط — تحقق من حفظك' : '🟢 Review mode active — verify your memory'}
-            StartIcon={Play}
-            StopIcon={Pause}
-          />
-        </div>
-      )}
-
-      {/* Body */}
+      {/* Mushaf-style body — empty page with verse number badges */}
       <div className="px-4 py-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -214,90 +194,92 @@ const ManualMemorizationPage = () => {
           </div>
         ) : (
           <>
-            {/* Bismillah */}
-            {selectedSurah !== 1 && selectedSurah !== 9 && (
-              <p className="font-quran text-xl text-center text-primary mb-4 leading-loose">
-                بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
-              </p>
-            )}
+            {/* Mushaf page — looks like a real Quran page (empty, lined paper feel) */}
+            <div
+              className="relative bg-gradient-to-b from-amber-50/40 to-amber-50/20 dark:from-amber-950/10 dark:to-amber-950/5 border border-amber-200/40 dark:border-amber-900/30 rounded-2xl shadow-sm overflow-hidden"
+              dir="rtl"
+            >
+              {/* Decorative top border */}
+              <div className="h-1.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
-            <div className="space-y-3">
-              {verses.map(v => {
-                const isRevealed = revealed.has(v.number);
-                return (
-                  <div
-                    key={v.number}
-                    className={`rounded-xl border transition-all ${
-                      isRevealed
-                        ? 'bg-primary/5 border-primary/30 shadow-sm'
-                        : 'bg-card border-border/60 hover:border-primary/40'
-                    }`}
-                  >
-                    <button
-                      onClick={() => toggleVerse(v.number)}
-                      className="w-full p-4 flex items-start gap-3 text-start"
-                    >
-                      {/* Verse number badge */}
-                      <div
-                        className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                          isRevealed
-                            ? 'bg-primary text-primary-foreground shadow-md'
-                            : 'bg-muted text-foreground border-2 border-dashed border-primary/40 hover:bg-primary/10'
-                        }`}
-                      >
-                        {isRevealed ? (
-                          <CheckCircle2 size={18} />
-                        ) : (
-                          <span className="font-arabic">{toArabicNum(v.number)}</span>
-                        )}
-                      </div>
+              <div className="px-5 py-6">
+                {/* Surah title banner */}
+                <div className="text-center mb-4">
+                  <div className="inline-block border-2 border-primary/30 rounded-lg px-6 py-2 bg-card/60">
+                    <p className="font-arabic text-base font-bold text-foreground">
+                      سُورَةُ {currentSurah?.name}
+                    </p>
+                  </div>
+                </div>
 
-                      <div className="flex-1 min-w-0">
+                {/* Bismillah */}
+                {selectedSurah !== 1 && selectedSurah !== 9 && (
+                  <p className="font-quran text-2xl text-center text-foreground/90 mb-6 leading-loose">
+                    بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+                  </p>
+                )}
+
+                {/* Lined paper background with verse markers floating on lines */}
+                <div
+                  className="relative space-y-5 min-h-[60vh]"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(to bottom, transparent 0, transparent 47px, hsl(var(--border) / 0.4) 47px, hsl(var(--border) / 0.4) 48px)',
+                  }}
+                >
+                  {verses.map((v, idx) => {
+                    const isRevealed = revealed.has(v.number);
+                    // alternate alignment to mimic mushaf layout (verses scattered across the page)
+                    const align = idx % 3 === 0 ? 'justify-start' : idx % 3 === 1 ? 'justify-center' : 'justify-end';
+                    return (
+                      <div key={v.number} className="relative">
                         {isRevealed ? (
                           <p
-                            className="font-quran text-lg text-foreground leading-loose text-right animate-fade-in"
-                            dir="rtl"
+                            className="font-quran text-xl md:text-2xl text-foreground leading-loose text-justify animate-fade-in"
+                            style={{ textAlignLast: 'center' }}
                           >
                             {v.text}
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-primary/40 text-primary text-xs font-bold mr-2 align-middle">
+                            <button
+                              onClick={() => toggleVerse(v.number)}
+                              className="inline-flex items-center justify-center w-8 h-8 mx-1 align-middle rounded-full border-2 border-primary/60 text-primary text-xs font-bold bg-card hover:bg-primary hover:text-primary-foreground transition-all"
+                              aria-label="hide verse"
+                              title={lang === 'ar' ? 'إخفاء الآية' : 'Hide verse'}
+                            >
                               {toArabicNum(v.number)}
-                            </span>
+                            </button>
                           </p>
                         ) : (
-                          <div className="flex items-center justify-between gap-2 py-1">
-                            <span className="text-xs text-muted-foreground font-arabic flex-1 min-w-0 truncate">
-                              {lang === 'ar'
-                                ? `الآية ${toArabicNum(v.number)} — اقرأ من حفظك`
-                                : `Verse ${v.number} — recite from memory`}
-                            </span>
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => { e.stopPropagation(); toggleVerse(v.number); }}
-                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleVerse(v.number); } }}
-                              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold shadow-sm hover:bg-primary/90 active:scale-95 transition-all cursor-pointer"
+                          <div className={`flex ${align} py-2`}>
+                            <button
+                              onClick={() => toggleVerse(v.number)}
+                              className="group relative w-12 h-12 flex items-center justify-center rounded-full border-2 border-primary/50 bg-card hover:bg-primary/10 hover:border-primary hover:scale-110 active:scale-95 transition-all shadow-sm"
+                              aria-label={lang === 'ar' ? `كشف الآية ${v.number}` : `Reveal verse ${v.number}`}
+                              title={lang === 'ar' ? 'اضغط لكشف الآية إذا نسيتها' : 'Tap to reveal if forgotten'}
                             >
-                              <Eye size={13} />
-                              {lang === 'ar' ? 'عرض النص' : 'Show text'}
-                            </span>
+                              <span className="font-arabic font-bold text-primary text-base">
+                                {toArabicNum(v.number)}
+                              </span>
+                              {/* Subtle pulse ring for hint */}
+                              <span className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping opacity-0 group-hover:opacity-100" />
+                            </button>
                           </div>
                         )}
                       </div>
-                    </button>
-                    {isRevealed && (
-                      <div className="px-4 pb-3 -mt-1">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleVerse(v.number); }}
-                          className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                        >
-                          <EyeOff size={11} /> {lang === 'ar' ? 'إخفاء النص' : 'Hide text'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Decorative bottom border */}
+              <div className="h-1.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             </div>
+
+            {/* Helper hint */}
+            <p className="mt-4 text-center text-[11px] text-muted-foreground font-arabic">
+              {lang === 'ar'
+                ? '💡 الصفحة فارغة كالمصحف — اضغط على رقم الآية إذا نسيتها لكشفها'
+                : '💡 Empty mushaf page — tap a verse number if you forgot it'}
+            </p>
 
             {verses.length > 0 && revealed.size === verses.length && (
               <div className="mt-6 bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/30 rounded-xl p-4 text-center animate-fade-in">
