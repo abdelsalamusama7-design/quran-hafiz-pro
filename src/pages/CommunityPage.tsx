@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, Users, Swords, Plus, ArrowRight, Crown, Medal, Award, LogOut } from 'lucide-react';
+import { toast as sonnerToast } from 'sonner';
+import StickyStartBar from '@/components/StickyStartBar';
+import { Trophy, Users, Swords, Plus, ArrowRight, Crown, Medal, Award, LogOut, GraduationCap, Headphones, Square, ChevronDown } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 
 type TabType = 'leaderboard' | 'circles' | 'challenges';
@@ -28,6 +30,11 @@ interface Circle {
   created_by: string;
   max_members: number;
   member_count?: number;
+}
+
+interface CircleMember {
+  user_id: string;
+  display_name: string;
 }
 
 interface Challenge {
@@ -57,6 +64,14 @@ const CommunityPage = () => {
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [newCircle, setNewCircle] = useState({ name: '', description: '' });
   const [newChallenge, setNewChallenge] = useState({ title: '', description: '', target_verses: 10 });
+
+  // === Teacher mode state (live student follow-up) ===
+  const [teacherCircleId, setTeacherCircleId] = useState<string | null>(null);
+  const [circleMembers, setCircleMembers] = useState<CircleMember[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<CircleMember | null>(null);
+  const [followActive, setFollowActive] = useState(false);
+  const [followStart, setFollowStart] = useState<number | null>(null);
+  const [showStudentPicker, setShowStudentPicker] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -167,6 +182,80 @@ const CommunityPage = () => {
     navigate('/');
   };
 
+  // === Teacher mode handlers ===
+  const openTeacherMode = async (circle: Circle) => {
+    if (!user) return;
+    if (circle.created_by !== user.id) {
+      sonnerToast.error(lang === 'ar' ? 'وضع المعلم متاح لمنشئ الحلقة فقط' : 'Teacher mode is for the circle owner');
+      return;
+    }
+    setTeacherCircleId(circle.id);
+    setSelectedStudent(null);
+    setFollowActive(false);
+    setFollowStart(null);
+    // Load members + their display names
+    const { data: members } = await supabase
+      .from('circle_members')
+      .select('user_id')
+      .eq('circle_id', circle.id);
+    if (!members || members.length === 0) {
+      setCircleMembers([]);
+      sonnerToast(lang === 'ar' ? 'لا يوجد طلاب في الحلقة بعد' : 'No students in this circle yet');
+      return;
+    }
+    const ids = members.map(m => m.user_id);
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('user_id, display_name')
+      .in('user_id', ids);
+    setCircleMembers(
+      (profs || []).map(p => ({ user_id: p.user_id, display_name: p.display_name || '—' }))
+    );
+  };
+
+  const closeTeacherMode = () => {
+    if (followActive) {
+      // Make sure no lingering "session" before closing
+      stopFollow(true);
+    }
+    setTeacherCircleId(null);
+    setCircleMembers([]);
+    setSelectedStudent(null);
+    setShowStudentPicker(false);
+  };
+
+  const startFollow = () => {
+    if (!selectedStudent) {
+      sonnerToast.error(
+        lang === 'ar' ? 'اختر طالباً أولاً' : 'Select a student first',
+        { description: lang === 'ar' ? 'اضغط على قائمة الطلاب لاختيار طالب' : 'Pick a student from the list' }
+      );
+      return;
+    }
+    setFollowActive(true);
+    setFollowStart(Date.now());
+    sonnerToast.success(
+      lang === 'ar' ? '✅ بدأت جلسة المتابعة' : '✅ Follow session started',
+      { description: lang === 'ar' ? `تتابع الآن: ${selectedStudent.display_name}` : `Following: ${selectedStudent.display_name}` }
+    );
+  };
+
+  const stopFollow = (silent = false) => {
+    const minutes = followStart ? Math.max(1, Math.round((Date.now() - followStart) / 60000)) : 0;
+    setFollowActive(false);
+    setFollowStart(null);
+    if (!silent) {
+      sonnerToast.success(
+        lang === 'ar' ? '⏹️ انتهت جلسة المتابعة' : '⏹️ Follow session ended',
+        {
+          description: lang === 'ar'
+            ? `المدة: ${minutes} دقيقة — ${selectedStudent?.display_name ?? ''}`
+            : `Duration: ${minutes} min — ${selectedStudent?.display_name ?? ''}`,
+        }
+      );
+    }
+  };
+
   const tabs = [
     { key: 'leaderboard' as TabType, icon: Trophy, label: lang === 'ar' ? 'المتصدرين' : 'Leaderboard' },
     { key: 'circles' as TabType, icon: Users, label: lang === 'ar' ? 'الحلقات' : 'Circles' },
@@ -275,10 +364,18 @@ const CommunityPage = () => {
                       <span className="text-xs text-muted-foreground">
                         {c.member_count}/{c.max_members} {lang === 'ar' ? 'عضو' : 'members'}
                       </span>
-                      <Button size="sm" variant="outline" onClick={() => joinCircle(c.id)}>
-                        <ArrowRight className="w-3 h-3" />
-                        {lang === 'ar' ? 'انضمام' : 'Join'}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {user?.id === c.created_by && (
+                          <Button size="sm" variant="default" onClick={() => openTeacherMode(c)}>
+                            <GraduationCap className="w-3 h-3" />
+                            {lang === 'ar' ? 'وضع المعلم' : 'Teacher'}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => joinCircle(c.id)}>
+                          <ArrowRight className="w-3 h-3" />
+                          {lang === 'ar' ? 'انضمام' : 'Join'}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
