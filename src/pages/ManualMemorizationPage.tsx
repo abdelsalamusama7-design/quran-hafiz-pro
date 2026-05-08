@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, C
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
 import { toast } from 'sonner';
+import { logActivity } from '@/lib/logActivity';
 
 interface Verse {
   number: number;
@@ -22,6 +23,8 @@ const ManualMemorizationPage = () => {
   const [loading, setLoading] = useState(false);
   const [showSurahPicker, setShowSurahPicker] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const sessionStartRef = useState<number>(() => Date.now())[0];
+  const loggedRef = useState<{ done: boolean }>({ done: false })[0];
 
   const currentSurah = surahs.find(s => s.id === selectedSurah);
 
@@ -30,6 +33,7 @@ const ManualMemorizationPage = () => {
     setVerses([]);
     setRevealed(new Set());
     setShowAll(false);
+    loggedRef.done = false;
     fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah}`)
       .then(r => r.json())
       .then(data => {
@@ -40,6 +44,22 @@ const ManualMemorizationPage = () => {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedSurah]);
+
+  // Auto-log when user reveals all verses (treated as a completed review session)
+  useEffect(() => {
+    if (verses.length > 0 && revealed.size === verses.length && !loggedRef.done) {
+      loggedRef.done = true;
+      const durationMin = Math.max(1, Math.round((Date.now() - sessionStartRef) / 60000));
+      void logActivity({
+        activityType: 'review',
+        surahNumber: selectedSurah,
+        versesCount: verses.length,
+        durationMinutes: durationMin,
+        pointsEarned: verses.length * 2,
+        notes: 'Manual memorization review',
+      });
+    }
+  }, [revealed, verses, selectedSurah, sessionStartRef, loggedRef]);
 
   const toggleVerse = (n: number) => {
     setRevealed(prev => {
