@@ -7,6 +7,7 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
 import { toast } from 'sonner';
+import { logActivity } from '@/lib/logActivity';
 
 interface Verse { number: number; text: string }
 interface Recording {
@@ -117,6 +118,15 @@ const RecordReviewPage = () => {
         streamRef.current = null;
         toast.success(lang === 'ar' ? '✅ تم حفظ التسجيل' : '✅ Recording saved', {
           description: lang === 'ar' ? `المدة: ${fmt(durationMs)}` : `Duration: ${fmt(durationMs)}`,
+        });
+        const minutes = Math.max(1, Math.round(durationMs / 60000));
+        void logActivity({
+          activityType: 'recitation',
+          surahNumber: selectedSurah,
+          versesCount: verses.length,
+          durationMinutes: minutes,
+          pointsEarned: minutes * 5,
+          notes: 'Self-recorded recitation',
         });
       };
       mediaRecRef.current = rec;
