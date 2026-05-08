@@ -4,7 +4,7 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, MessageCircle, Sparkles, EyeOff, Zap, Hand } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, MessageCircle, Sparkles, EyeOff, Zap, Hand, Save } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
@@ -67,6 +67,7 @@ const HomePage = () => {
   const quickActions = [
     { icon: BookOpen, label: lang === 'ar' ? 'القرآن الكريم' : 'Quran', action: () => navigate('/quran'), gradient: 'from-emerald-500 to-teal-600', ring: 'ring-emerald-400/30' },
     { icon: Hand, label: lang === 'ar' ? 'الحفظ اليدوي' : 'Manual Memorization', action: () => navigate('/manual-memorization'), gradient: 'from-lime-500 to-green-600', ring: 'ring-lime-400/30' },
+    { icon: Save, label: lang === 'ar' ? 'سجّل وراجع' : 'Record & Review', action: () => navigate('/record-review'), gradient: 'from-red-500 to-rose-600', ring: 'ring-red-400/30' },
     { icon: Mic, label: lang === 'ar' ? 'تصحيح التلاوة' : 'Recitation', action: () => navigate('/recitation'), gradient: 'from-rose-500 to-pink-600', ring: 'ring-rose-400/30' },
     { icon: HelpCircle, label: t('quiz'), action: () => navigate('/quiz'), gradient: 'from-blue-500 to-indigo-600', ring: 'ring-blue-400/30' },
     { icon: GraduationCap, label: lang === 'ar' ? 'التجويد' : 'Tajweed', action: () => navigate('/tajweed'), gradient: 'from-amber-500 to-orange-600', ring: 'ring-amber-400/30' },
@@ -107,6 +108,31 @@ const HomePage = () => {
               {lang === 'ar'
                 ? 'ورقة فاضية — احفظ مع نفسك، واضغط لكشف كل آية للتحقق. بدون استماع ولا تسجيل.'
                 : 'Blank page — recite from memory, tap to reveal each verse. No listening or recording.'}
+            </p>
+          </div>
+        </div>
+      </button>
+
+      {/* Highlighted: Record & Review — record your recitation and replay against text */}
+      <button
+        onClick={() => navigate('/record-review')}
+        className="group relative w-full text-start overflow-hidden rounded-2xl border-2 border-red-500/40 bg-gradient-to-br from-red-500/15 via-card to-rose-500/10 p-4 shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] animate-fade-in"
+      >
+        <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-700 dark:text-red-300 text-[10px] font-bold">
+          {lang === 'ar' ? '🎙️ تسجيل ذاتي' : '🎙️ Self record'}
+        </span>
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white shadow-lg ring-4 ring-red-400/30 group-hover:scale-110 transition-transform duration-300">
+            <Save className="w-7 h-7 drop-shadow" strokeWidth={2.2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-foreground font-arabic text-base leading-tight">
+              {lang === 'ar' ? '🎤 سجّل تسميعك وراجعه بنفسك' : '🎤 Record & Review Yourself'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 leading-snug font-arabic">
+              {lang === 'ar'
+                ? 'سجّل صوتك بضغطة زر، ثم أعد تشغيله وقارنه بالنص المكتوب أمامك.'
+                : 'Tap to record your voice, then replay and compare against the verses.'}
             </p>
           </div>
         </div>
