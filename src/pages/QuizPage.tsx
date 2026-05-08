@@ -54,6 +54,7 @@ const QuizPage = () => {
     setQuizDone(false);
     setCurrent(0);
     setScore(0);
+    setQuizStart(Date.now());
     setShowResult(null);
     setUserAnswer('');
     setSelectedOption(null);
