@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
 import { toast } from 'sonner';
+import { logActivity } from '@/lib/logActivity';
 
 interface Verse {
   number: number;
@@ -22,6 +23,8 @@ const ManualMemorizationPage = () => {
   const [loading, setLoading] = useState(false);
   const [showSurahPicker, setShowSurahPicker] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const sessionStartRef = useRef<number>(Date.now());
+  const loggedRef = useRef<boolean>(false);
 
   const currentSurah = surahs.find(s => s.id === selectedSurah);
 
@@ -30,6 +33,8 @@ const ManualMemorizationPage = () => {
     setVerses([]);
     setRevealed(new Set());
     setShowAll(false);
+    loggedRef.current = false;
+    sessionStartRef.current = Date.now();
     fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah}`)
       .then(r => r.json())
       .then(data => {
@@ -40,6 +45,22 @@ const ManualMemorizationPage = () => {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedSurah]);
+
+  // Auto-log when user reveals all verses (treated as a completed review session)
+  useEffect(() => {
+    if (verses.length > 0 && revealed.size === verses.length && !loggedRef.current) {
+      loggedRef.current = true;
+      const durationMin = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 60000));
+      void logActivity({
+        activityType: 'review',
+        surahNumber: selectedSurah,
+        versesCount: verses.length,
+        durationMinutes: durationMin,
+        pointsEarned: verses.length * 2,
+        notes: 'Manual memorization review',
+      });
+    }
+  }, [revealed, verses, selectedSurah]);
 
   const toggleVerse = (n: number) => {
     setRevealed(prev => {
