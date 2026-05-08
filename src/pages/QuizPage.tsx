@@ -5,6 +5,7 @@ import { surahs } from '@/data/surahs';
 import { useMemorization } from '@/hooks/useMemorization';
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, HelpCircle, RotateCcw, Headphones, Volume2, Loader2 } from 'lucide-react';
+import { logActivity } from '@/lib/logActivity';
 
 type TestType = 'fill' | 'listen-identify' | 'listen-next' | 'order';
 
@@ -34,6 +35,7 @@ const QuizPage = () => {
   const [loading, setLoading] = useState(true);
   const [quizDone, setQuizDone] = useState(false);
   const [testType, setTestType] = useState<TestType | 'all'>('all');
+  const [quizStart, setQuizStart] = useState<number>(Date.now());
 
   const memorizedSurahIds = [...new Set(
     Object.keys(memorizedVerses).map(k => parseInt(k.split(':')[0]))
@@ -177,6 +179,17 @@ const QuizPage = () => {
       setCurrent(prev => prev + 1);
     } else {
       setQuizDone(true);
+      const finalScore = score + (showResult === 'correct' ? 0 : 0);
+      const durationMin = Math.max(1, Math.round((Date.now() - quizStart) / 60000));
+      const surahIds = [...new Set(questions.map(q => q.surahId))];
+      void logActivity({
+        activityType: 'quiz',
+        surahNumber: surahIds.length === 1 ? surahIds[0] : null,
+        versesCount: questions.length,
+        durationMinutes: durationMin,
+        pointsEarned: finalScore * 5,
+        notes: `Quiz: ${finalScore}/${questions.length}`,
+      });
     }
   };
 
