@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2, Clock, Settings as SettingsIcon, Repeat } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2, Clock, Settings as SettingsIcon, Repeat, SkipForward } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
 import { toast } from 'sonner';
@@ -169,6 +169,25 @@ const ManualMemorizationPage = () => {
   const reset = () => {
     setRevealed(new Set());
     setShowAll(false);
+  };
+
+  // Reveal verses one-by-one in order — no listening / no recording
+  const revealNextInSequence = () => {
+    if (verses.length === 0) return;
+    // Find the lowest-numbered verse that is NOT yet revealed
+    const next = verses.find(v => !revealed.has(v.number));
+    if (!next) {
+      toast.success(lang === 'ar' ? '🎉 تم كشف كل الآيات' : '🎉 All verses revealed');
+      return;
+    }
+    clearVerseTimer(next.number);
+    setRevealed(prev => new Set(prev).add(next.number));
+    setShowAll(false);
+    // Scroll to the freshly revealed verse
+    setTimeout(() => {
+      const el = document.getElementById(`mm-verse-${next.number}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
   };
 
   const toggleAll = () => {
@@ -351,6 +370,22 @@ const ManualMemorizationPage = () => {
                 {lang === 'ar' ? 'إعادة' : 'Reset'}
               </button>
             </div>
+            {/* Sequential reveal — no listening / no recording */}
+            <button
+              onClick={revealNextInSequence}
+              disabled={verses.length > 0 && revealed.size === verses.length}
+              className="w-full py-2 rounded-lg bg-gradient-to-r from-primary to-emerald-600 text-primary-foreground text-xs font-bold flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+              title={lang === 'ar' ? 'كشف الآية التالية بالترتيب' : 'Reveal next verse in order'}
+            >
+              <SkipForward size={14} />
+              {revealed.size === 0
+                ? (lang === 'ar' ? '👁️ كشف الآية الأولى' : '👁️ Reveal first verse')
+                : verses.length > 0 && revealed.size === verses.length
+                ? (lang === 'ar' ? '✓ اكتمل الكشف' : '✓ All revealed')
+                : (lang === 'ar'
+                    ? `كشف الآية التالية (${revealed.size + 1}/${verses.length})`
+                    : `Reveal next verse (${revealed.size + 1}/${verses.length})`)}
+            </button>
           </div>
         )}
       </div>

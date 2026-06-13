@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import MicLevelIndicator from '@/components/MicLevelIndicator';
+import PreSessionChecklist from '@/components/PreSessionChecklist';
 import AudioQualityAlert from '@/components/AudioQualityAlert';
 import { useAudioQuality, type AudioQuality } from '@/hooks/useAudioQuality';
 import SessionSummaryModal, { type SessionSummary } from '@/components/SessionSummaryModal';
@@ -1300,6 +1301,10 @@ const RecitationPage = () => {
               </div>
               {isProcessing && <Loader2 size={14} className="text-primary animate-spin" />}
             </div>
+          )}
+
+          {!isLiveListening && mode === 'live-listen' && (
+            <PreSessionChecklist lang={lang} />
           )}
 
           {!isLiveListening && mode === 'live-listen' && (
