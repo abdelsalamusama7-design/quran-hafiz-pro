@@ -84,16 +84,17 @@ const HomePage = () => {
   const recentSurahs = surahs.filter(s => [1, 36, 55, 67, 112, 114].includes(s.id));
 
   return (
-    <div className="pb-28 px-4 pt-4 md:pt-8 max-w-lg mx-auto space-y-5 md:space-y-8">
+    <div className="pb-28 pt-4 md:pt-8 mx-auto max-w-md sm:max-w-2xl lg:max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6 md:space-y-10">
+      {/* Hero band — emerald + gold, full-width, with Quranic ayah */}
       <IslamicHeader />
 
       {/* Universal search entry */}
       <button
         onClick={() => navigate('/search')}
-        className="w-full flex items-center gap-2 px-4 h-12 rounded-2xl border bg-card hover:bg-muted/60 transition-colors text-start shadow-card"
+        className="w-full flex items-center gap-2 px-4 h-12 rounded-2xl border-2 border-[hsl(var(--gold)/0.25)] bg-card hover:border-[hsl(var(--gold)/0.5)] transition-colors text-start shadow-card"
       >
-        <Search className="w-4 h-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground flex-1 truncate">
+        <Search className="w-4 h-4 text-primary" />
+        <span className="text-sm text-muted-foreground flex-1 truncate font-arabic">
           {lang === 'ar'
             ? 'ابحث في السور، الآيات، أو الخدمات...'
             : 'Search surahs, verses, or services...'}
@@ -102,77 +103,83 @@ const HomePage = () => {
 
       <StatsCards />
 
-      {/* Highlighted: Manual Memorization — silent, paper-style review (no mic / no recording) */}
-      <button
-        onClick={() => navigate('/manual-memorization')}
-        className="group relative w-full text-start overflow-hidden rounded-2xl border-2 border-lime-500/40 bg-gradient-to-br from-lime-500/15 via-card to-emerald-500/10 p-4 shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] animate-fade-in"
-      >
-        <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-lime-500/20 text-lime-700 dark:text-lime-300 text-[10px] font-bold">
-          {lang === 'ar' ? '📵 بدون ميكروفون' : '📵 No mic needed'}
-        </span>
-        <div className="flex items-center gap-3">
-          <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-lime-500 to-emerald-600 flex items-center justify-center text-white shadow-lg ring-4 ring-lime-400/30 group-hover:scale-110 transition-transform duration-300">
-            <Hand className="w-7 h-7 drop-shadow" strokeWidth={2.2} />
+      {/* Primary CTAs — side-by-side on tablet+, stacked on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+        {/* Manual Memorization — silent */}
+        <button
+          onClick={() => navigate('/manual-memorization')}
+          className="group relative w-full text-start overflow-hidden rounded-2xl border-2 border-[hsl(var(--primary)/0.25)] bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(154_60%_28%)] text-white p-5 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] animate-fade-in"
+          style={{ borderInlineStartWidth: '4px', borderInlineStartColor: 'hsl(var(--gold))' }}
+        >
+          <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-white/15 backdrop-blur text-[10px] font-bold">
+            {lang === 'ar' ? '📵 بدون ميكروفون' : '📵 No mic'}
+          </span>
+          <div className="flex items-center gap-4">
+            <div className="shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-white ring-2 ring-white/20 group-hover:scale-110 transition-transform">
+              <Hand className="w-7 h-7" strokeWidth={2.2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-base leading-tight" style={{ fontFamily: 'Amiri, serif' }}>
+                {lang === 'ar' ? 'الحفظ اليدوي الصامت' : 'Silent Manual Memorization'}
+              </p>
+              <p className="text-xs text-white/85 mt-1 leading-snug font-arabic">
+                {lang === 'ar'
+                  ? 'ورقة فاضية — احفظ مع نفسك، اكشف كل آية للتحقق.'
+                  : 'Blank page — recite from memory, tap to reveal.'}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-foreground font-arabic text-base leading-tight">
-              {lang === 'ar' ? '✋ الحفظ اليدوي' : '✋ Manual Memorization'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1 leading-snug font-arabic">
-              {lang === 'ar'
-                ? 'ورقة فاضية — احفظ مع نفسك، واضغط لكشف كل آية للتحقق. بدون استماع ولا تسجيل.'
-                : 'Blank page — recite from memory, tap to reveal each verse. No listening or recording.'}
-            </p>
-          </div>
-        </div>
-      </button>
+        </button>
 
-      {/* Highlighted: Record & Review — record your recitation and replay against text */}
-      <button
-        onClick={() => navigate('/record-review')}
-        className="group relative w-full text-start overflow-hidden rounded-2xl border-2 border-red-500/40 bg-gradient-to-br from-red-500/15 via-card to-rose-500/10 p-4 shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] animate-fade-in"
-      >
-        <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-700 dark:text-red-300 text-[10px] font-bold">
-          {lang === 'ar' ? '🎙️ تسجيل ذاتي' : '🎙️ Self record'}
-        </span>
-        <div className="flex items-center gap-3">
-          <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white shadow-lg ring-4 ring-red-400/30 group-hover:scale-110 transition-transform duration-300">
-            <Save className="w-7 h-7 drop-shadow" strokeWidth={2.2} />
+        {/* Record & Review */}
+        <button
+          onClick={() => navigate('/record-review')}
+          className="group relative w-full text-start overflow-hidden rounded-2xl border-2 border-border bg-card p-5 shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] animate-fade-in"
+          style={{ borderInlineStartWidth: '4px', borderInlineStartColor: 'hsl(var(--destructive))' }}
+        >
+          <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive text-[10px] font-bold">
+            {lang === 'ar' ? '🎙️ تسجيل ذاتي' : '🎙️ Self record'}
+          </span>
+          <div className="flex items-center gap-4">
+            <div className="shrink-0 w-14 h-14 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center ring-2 ring-destructive/20 group-hover:scale-110 transition-transform">
+              <Save className="w-7 h-7" strokeWidth={2.2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-foreground text-base leading-tight" style={{ fontFamily: 'Amiri, serif' }}>
+                {lang === 'ar' ? 'سجّل تسميعك وراجعه' : 'Record & Review Yourself'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 leading-snug font-arabic">
+                {lang === 'ar'
+                  ? 'سجّل صوتك، ثم أعد تشغيله وقارنه بالنص.'
+                  : 'Record your voice, then replay against text.'}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-foreground font-arabic text-base leading-tight">
-              {lang === 'ar' ? '🎤 سجّل تسميعك وراجعه بنفسك' : '🎤 Record & Review Yourself'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1 leading-snug font-arabic">
-              {lang === 'ar'
-                ? 'سجّل صوتك بضغطة زر، ثم أعد تشغيله وقارنه بالنص المكتوب أمامك.'
-                : 'Tap to record your voice, then replay and compare against the verses.'}
-            </p>
-          </div>
-        </div>
-      </button>
+        </button>
+      </div>
 
       {/* Recitation Modes — surfaced from /recitation for instant access */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-foreground font-arabic text-sm md:text-base">
-            {lang === 'ar' ? '🎤 أوضاع التسميع' : '🎤 Recitation Modes'}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2" style={{ fontFamily: 'Amiri, serif' }}>
+            <span className="text-[hsl(var(--gold))]">✦</span>
+            {lang === 'ar' ? 'أوضاع التسميع' : 'Recitation Modes'}
           </h2>
           <button
             onClick={() => navigate('/recitation')}
-            className="text-xs text-primary font-medium hover:underline"
+            className="text-xs md:text-sm text-primary font-bold hover:underline"
           >
             {lang === 'ar' ? 'عرض الكل →' : 'See all →'}
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {recitationModes.map(({ id, icon: Icon, labelAr, labelEn, descAr, descEn, gradient, ring }, idx) => (
             <button
               key={id}
               onClick={() => navigate(`/recitation?mode=${id}`)}
               style={{ animationDelay: `${idx * 50}ms` }}
-              className={`group relative bg-card border border-border/50 rounded-2xl p-3 text-start shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-1 active:scale-95 hover:border-primary/30 animate-fade-in overflow-hidden ${
-                id === 'live-listen' ? 'col-span-2' : ''
+              className={`group relative bg-card border border-border/50 rounded-2xl p-3 md:p-4 text-start shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-1 active:scale-95 hover:border-[hsl(var(--gold)/0.5)] animate-fade-in overflow-hidden ${
+                id === 'live-listen' ? 'col-span-2 md:col-span-3 lg:col-span-4' : ''
               }`}
             >
               {/* Glow on hover */}
@@ -204,10 +211,11 @@ const HomePage = () => {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="font-semibold text-foreground font-arabic text-sm md:text-base mb-3">
-          {lang === 'ar' ? '⚡ الخدمات' : '⚡ Services'}
+        <h2 className="text-xl md:text-2xl font-bold text-foreground mb-4 flex items-center gap-2" style={{ fontFamily: 'Amiri, serif' }}>
+          <span className="text-[hsl(var(--gold))]">✦</span>
+          {lang === 'ar' ? 'الخدمات' : 'Services'}
         </h2>
-        <div className="grid grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3 md:gap-4">
           {quickActions.map(({ icon: Icon, label, action, gradient, ring }, idx) => (
             <button
               key={label}
@@ -231,11 +239,14 @@ const HomePage = () => {
 
       {/* Popular Surahs */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-foreground font-arabic text-sm md:text-base">{t('popularSurahs')}</h2>
-          <button onClick={() => navigate('/quran')} className="text-xs text-primary font-medium hover:underline">{t('allSurahs')} →</button>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2" style={{ fontFamily: 'Amiri, serif' }}>
+            <span className="text-[hsl(var(--gold))]">✦</span>
+            {t('popularSurahs')}
+          </h2>
+          <button onClick={() => navigate('/quran')} className="text-xs md:text-sm text-primary font-bold hover:underline">{t('allSurahs')} →</button>
         </div>
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {recentSurahs.map(surah => (
             <SurahCard key={surah.id} surah={surah} />
           ))}
