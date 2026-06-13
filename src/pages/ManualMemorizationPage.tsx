@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2, Clock, Settings as SettingsIcon, Repeat } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
 import { toast } from 'sonner';
@@ -26,6 +26,89 @@ const ManualMemorizationPage = () => {
   const sessionStartRef = useRef<number>(Date.now());
   const loggedRef = useRef<boolean>(false);
 
+  // ===== Optional reveal-timer (gentle nudge) =====
+  const [timerEnabled, setTimerEnabled] = useState<boolean>(() => {
+    try { return localStorage.getItem('hafiz_manual_timer_on') === '1'; } catch { return false; }
+  });
+  const [timerSeconds, setTimerSeconds] = useState<number>(() => {
+    try { return parseInt(localStorage.getItem('hafiz_manual_timer_secs') || '10', 10) || 10; } catch { return 10; }
+  });
+  const [showSettings, setShowSettings] = useState(false);
+  // verseNumber -> remaining seconds (null/undefined = no active timer)
+  const [pendingTimers, setPendingTimers] = useState<Record<number, number>>({});
+  const timersRef = useRef<Record<number, number>>({});
+
+  useEffect(() => {
+    try { localStorage.setItem('hafiz_manual_timer_on', timerEnabled ? '1' : '0'); } catch {}
+  }, [timerEnabled]);
+  useEffect(() => {
+    try { localStorage.setItem('hafiz_manual_timer_secs', String(timerSeconds)); } catch {}
+  }, [timerSeconds]);
+
+  const clearVerseTimer = (n: number) => {
+    const id = timersRef.current[n];
+    if (id) { window.clearInterval(id); delete timersRef.current[n]; }
+    setPendingTimers(prev => {
+      const next = { ...prev };
+      delete next[n];
+      return next;
+    });
+  };
+
+  const startVerseTimer = (n: number) => {
+    // cancel any existing
+    clearVerseTimer(n);
+    let remaining = timerSeconds;
+    setPendingTimers(prev => ({ ...prev, [n]: remaining }));
+    const id = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        window.clearInterval(id);
+        delete timersRef.current[n];
+        setPendingTimers(prev => {
+          const next = { ...prev }; delete next[n]; return next;
+        });
+        // Gentle prompt — does NOT auto-reveal
+        toast(lang === 'ar' ? `⏰ آية ${n} — هل تحتاج كشفها؟` : `⏰ Verse ${n} — reveal?`, {
+          description: lang === 'ar' ? 'تمهّل، حاول استرجاعها من حفظك' : 'Take your time, try to recall it',
+          duration: 6000,
+          action: {
+            label: lang === 'ar' ? 'كشف' : 'Reveal',
+            onClick: () => setRevealed(prev => new Set(prev).add(n)),
+          },
+        });
+      } else {
+        setPendingTimers(prev => ({ ...prev, [n]: remaining }));
+      }
+    }, 1000);
+    timersRef.current[n] = id;
+  };
+
+  // cleanup all timers on unmount / surah change
+  useEffect(() => () => {
+    Object.values(timersRef.current).forEach(id => window.clearInterval(id));
+    timersRef.current = {};
+  }, []);
+
+  const replayVerse = (n: number) => {
+    // Hide the verse text (reveal toggle off), scroll back to its badge, and restart the timer if enabled
+    setRevealed(prev => {
+      const next = new Set(prev);
+      next.delete(n);
+      return next;
+    });
+    setShowAll(false);
+    if (timerEnabled) startVerseTimer(n);
+    toast(lang === 'ar' ? `🔁 إعادة آية ${n}` : `🔁 Replay verse ${n}`, {
+      description: lang === 'ar' ? 'اقرأ مرة أخرى من حفظك' : 'Recite again from memory',
+      duration: 2500,
+    });
+    setTimeout(() => {
+      const el = document.getElementById(`mm-verse-${n}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
+  };
+
   const currentSurah = surahs.find(s => s.id === selectedSurah);
 
   useEffect(() => {
@@ -35,6 +118,10 @@ const ManualMemorizationPage = () => {
     setShowAll(false);
     loggedRef.current = false;
     sessionStartRef.current = Date.now();
+    // cancel any timers from previous surah
+    Object.values(timersRef.current).forEach(id => window.clearInterval(id));
+    timersRef.current = {};
+    setPendingTimers({});
     fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah}`)
       .then(r => r.json())
       .then(data => {
@@ -63,12 +150,20 @@ const ManualMemorizationPage = () => {
   }, [revealed, verses, selectedSurah]);
 
   const toggleVerse = (n: number) => {
+    // Cancel any pending nudge timer for this verse
+    clearVerseTimer(n);
     setRevealed(prev => {
       const next = new Set(prev);
       if (next.has(n)) next.delete(n);
       else next.add(n);
       return next;
     });
+    // If timer feature is on AND the verse is currently hidden (about to become revealed -> skip),
+    // OR the verse is currently revealed (about to be re-hidden -> start timer for next attempt)
+    const willBecomeHidden = revealed.has(n);
+    if (timerEnabled && willBecomeHidden) {
+      startVerseTimer(n);
+    }
   };
 
   const reset = () => {
@@ -124,7 +219,61 @@ const ManualMemorizationPage = () => {
                 : 'Recite from memory then tap the verse number to reveal'}
             </p>
           </div>
+          <button
+            onClick={() => setShowSettings(s => !s)}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+              timerEnabled ? 'bg-primary/15 text-primary' : 'bg-muted text-foreground hover:bg-muted/80'
+            }`}
+            aria-label="settings"
+            title={lang === 'ar' ? 'إعدادات المؤقت' : 'Timer settings'}
+          >
+            <SettingsIcon size={16} />
+          </button>
         </div>
+
+        {showSettings && (
+          <div className="mb-3 rounded-lg border border-border bg-card p-3 space-y-2 animate-fade-in">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                <Clock size={13} className="text-primary" />
+                {lang === 'ar' ? 'مؤقت اختياري للكشف' : 'Optional reveal timer'}
+              </label>
+              <button
+                onClick={() => setTimerEnabled(v => !v)}
+                className={`relative w-10 h-5 rounded-full transition-colors ${timerEnabled ? 'bg-primary' : 'bg-muted'}`}
+                role="switch"
+                aria-checked={timerEnabled}
+              >
+                <span
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-transform ${
+                    timerEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {[5, 10, 15, 20, 30].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setTimerSeconds(s)}
+                  disabled={!timerEnabled}
+                  className={`flex-1 py-1 rounded-md text-[11px] font-medium transition-colors disabled:opacity-40 ${
+                    timerSeconds === s
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {s}{lang === 'ar' ? 'ث' : 's'}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              {lang === 'ar'
+                ? 'عند تفعيله: اضغط 🕒 على الآية لبدء المؤقت — يصلك إشعار لطيف عند انتهاء الوقت دون كشف تلقائي.'
+                : 'When on: tap 🕒 on a verse to start the timer — you get a gentle prompt at time-up, no auto-reveal.'}
+            </p>
+          </div>
+        )}
 
         {/* Surah selector */}
         <div className="flex items-center gap-2">
@@ -250,10 +399,11 @@ const ManualMemorizationPage = () => {
                 >
                   {verses.map((v, idx) => {
                     const isRevealed = revealed.has(v.number);
+                    const countdown = pendingTimers[v.number];
                     // alternate alignment to mimic mushaf layout (verses scattered across the page)
                     const align = idx % 3 === 0 ? 'justify-start' : idx % 3 === 1 ? 'justify-center' : 'justify-end';
                     return (
-                      <div key={v.number} className="relative">
+                      <div key={v.number} id={`mm-verse-${v.number}`} className="relative scroll-mt-32">
                         {isRevealed ? (
                           <p
                             className="font-quran text-xl md:text-2xl text-foreground leading-loose text-justify animate-fade-in"
@@ -268,9 +418,18 @@ const ManualMemorizationPage = () => {
                             >
                               {toArabicNum(v.number)}
                             </button>
+                            <button
+                              onClick={() => replayVerse(v.number)}
+                              className="inline-flex items-center justify-center gap-1 mx-1 px-2 h-7 align-middle rounded-full border border-accent/50 text-accent-foreground bg-accent/15 hover:bg-accent/30 text-[11px] font-medium transition-all"
+                              aria-label={lang === 'ar' ? `إعادة الآية ${v.number}` : `Replay verse ${v.number}`}
+                              title={lang === 'ar' ? 'إعادة الآية — إخفاء النص ومحاولة من جديد' : 'Replay verse — hide & retry'}
+                            >
+                              <Repeat size={11} />
+                              {lang === 'ar' ? 'إعادة' : 'Replay'}
+                            </button>
                           </p>
                         ) : (
-                          <div className={`flex ${align} py-2`}>
+                          <div className={`flex ${align} py-2 items-center gap-2`}>
                             <button
                               onClick={() => toggleVerse(v.number)}
                               className="group relative w-12 h-12 flex items-center justify-center rounded-full border-2 border-primary/50 bg-card hover:bg-primary/10 hover:border-primary hover:scale-110 active:scale-95 transition-all shadow-sm"
@@ -283,6 +442,27 @@ const ManualMemorizationPage = () => {
                               {/* Subtle pulse ring for hint */}
                               <span className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping opacity-0 group-hover:opacity-100" />
                             </button>
+                            {timerEnabled && (
+                              countdown !== undefined ? (
+                                <button
+                                  onClick={() => clearVerseTimer(v.number)}
+                                  className="h-9 px-2.5 rounded-full bg-primary/15 border border-primary/40 text-primary text-[11px] font-bold flex items-center gap-1 animate-pulse"
+                                  title={lang === 'ar' ? 'إلغاء المؤقت' : 'Cancel timer'}
+                                >
+                                  <Clock size={11} />
+                                  {countdown}{lang === 'ar' ? 'ث' : 's'}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => startVerseTimer(v.number)}
+                                  className="h-9 w-9 rounded-full bg-muted text-muted-foreground hover:bg-primary/15 hover:text-primary flex items-center justify-center transition-colors"
+                                  title={lang === 'ar' ? `ابدأ مؤقت ${timerSeconds}ث` : `Start ${timerSeconds}s timer`}
+                                  aria-label="start timer"
+                                >
+                                  <Clock size={14} />
+                                </button>
+                              )
+                            )}
                           </div>
                         )}
                       </div>
