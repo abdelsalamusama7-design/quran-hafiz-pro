@@ -1242,8 +1242,8 @@ const RecitationPage = () => {
             )}
           </div>
 
-          {/* Stats row: accuracy + verses completed + auto-advance toggle */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* Stats row: accuracy + verses completed + auto-advance toggle + repeat-low toggle */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div className={`rounded-xl p-2.5 text-center ${
               liveAccuracy === null ? 'bg-muted text-muted-foreground' :
               liveAccuracy >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' :
@@ -1265,6 +1265,16 @@ const RecitationPage = () => {
             >
               <p className="text-[10px] opacity-80">{lang === 'ar' ? 'انتقال تلقائي' : 'Auto-advance'}</p>
               <p className="text-xs font-bold mt-0.5">{autoAdvance ? (lang === 'ar' ? '✓ مُفعّل' : '✓ ON') : (lang === 'ar' ? 'مُعطّل' : 'OFF')}</p>
+            </button>
+            <button
+              onClick={() => setRepeatLowAccuracy(v => !v)}
+              title={lang === 'ar' ? 'يقترح تكرار الآية تلقائيًا إذا كانت الدقة أقل من 85%' : 'Auto-suggest repeat if accuracy < 85%'}
+              className={`rounded-xl p-2.5 text-center transition-all ${
+                repeatLowAccuracy ? 'bg-amber-500 text-white shadow-md' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <p className="text-[10px] opacity-90">{lang === 'ar' ? '🔁 تكرار <85%' : '🔁 Repeat <85%'}</p>
+              <p className="text-xs font-bold mt-0.5">{repeatLowAccuracy ? (lang === 'ar' ? '✓ مُفعّل' : '✓ ON') : (lang === 'ar' ? 'مُعطّل' : 'OFF')}</p>
             </button>
           </div>
 
