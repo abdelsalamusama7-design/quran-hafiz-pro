@@ -543,24 +543,7 @@ const FamilyPage = () => {
 
         {/* Activity */}
         <TabsContent value="activity" className="space-y-2 mt-4">
-          {logs.length === 0 ? (
-            <p className="text-center text-muted-foreground py-6">{lang === 'ar' ? 'لا توجد أنشطة بعد' : 'No activity yet'}</p>
-          ) : logs.map(log => {
-            const child = members.find(m => m.user_id === log.child_user_id);
-            return (
-              <Card key={log.id}>
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{child?.display_name} · {log.activity_type}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {log.verses_count} {lang === 'ar' ? 'آية' : 'verses'} · {log.duration_minutes} {lang === 'ar' ? 'دقيقة' : 'min'} · {new Date(log.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Badge>{log.points_earned} pts</Badge>
-                </CardContent>
-              </Card>
-            );
-          })}
+          <ActivityLogList logs={logs} members={members} lang={lang} />
         </TabsContent>
       </Tabs>
     </div>
