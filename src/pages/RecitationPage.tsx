@@ -117,6 +117,7 @@ const RecitationPage = () => {
   // Auto-advance + session tracking
   const [versesCompleted, setVersesCompleted] = useState(0);
   const [autoAdvance, setAutoAdvance] = useState(true);
+  const [repeatLowAccuracy, setRepeatLowAccuracy] = useState(true);
   const sessionStartRef = useRef<number | null>(null);
   const accuracySumRef = useRef(0);
   const accuracyCountRef = useRef(0);
@@ -140,6 +141,10 @@ const RecitationPage = () => {
   useEffect(() => { versesCompletedRef.current = versesCompleted; }, [versesCompleted]);
   const autoAdvanceRef = useRef(autoAdvance);
   useEffect(() => { autoAdvanceRef.current = autoAdvance; }, [autoAdvance]);
+  const repeatLowAccuracyRef = useRef(repeatLowAccuracy);
+  useEffect(() => { repeatLowAccuracyRef.current = repeatLowAccuracy; }, [repeatLowAccuracy]);
+  // Track how many times the student has repeated the current verse due to low accuracy
+  const verseRepeatCountRef = useRef<Record<number, number>>({});
   const versesRef = useRef(verses);
   useEffect(() => { versesRef.current = verses; }, [verses]);
 
