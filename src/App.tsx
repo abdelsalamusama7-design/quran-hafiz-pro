@@ -29,6 +29,8 @@ import DownloadsPage from "./pages/DownloadsPage";
 import ManualMemorizationPage from "./pages/ManualMemorizationPage";
 import RecordReviewPage from "./pages/RecordReviewPage";
 import SearchPage from "./pages/SearchPage";
+import MushafTafsirPage from "./pages/MushafTafsirPage";
+import PrayerTimesPage from "./pages/PrayerTimesPage";
 import NotFound from "./pages/NotFound";
 import { useActivitySync } from "@/hooks/useActivitySync";
 
@@ -68,6 +70,9 @@ const App = () => (
               <Route path="/manual-memorization" element={<ManualMemorizationPage />} />
               <Route path="/record-review" element={<RecordReviewPage />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/mushaf-tafsir" element={<MushafTafsirPage />} />
+              <Route path="/prayer-times" element={<PrayerTimesPage />} />
+              <Route path="/adhan" element={<PrayerTimesPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />
