@@ -581,6 +581,7 @@ const RecitationPage = () => {
     accumulatedTranscriptRef.current = '';
     msgIdRef.current = 0;
     previousMistakesRef.current = [];
+    verseRepeatCountRef.current = {};
     mistakeWordsRef.current = new Map();
     setSessionSummary(null);
     setSessionMistakes([]);
