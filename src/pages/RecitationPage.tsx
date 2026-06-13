@@ -1302,6 +1302,22 @@ const RecitationPage = () => {
             </div>
           )}
 
+          {!isLiveListening && mode === 'live-listen' && (
+            <button
+              onClick={runMicCalibration}
+              disabled={calibrating}
+              className="self-start text-[11px] px-3 py-1.5 rounded-full bg-card border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-50 flex items-center gap-1.5 font-medium"
+              title={lang === 'ar' ? 'معايرة سريعة لتقليل الإنذارات الكاذبة' : 'Quick calibration to reduce false alarms'}
+            >
+              {calibrating
+                ? <Loader2 size={12} className="animate-spin" />
+                : <span>🎚️</span>}
+              {calibrating
+                ? (lang === 'ar' ? 'جارٍ المعايرة…' : 'Calibrating…')
+                : (lang === 'ar' ? 'معايرة الميكروفون' : 'Calibrate mic')}
+            </button>
+          )}
+
           {isLiveListening && mode === 'live-listen' && (
             <AudioQualityAlert
               quality={audioQuality.quality}
