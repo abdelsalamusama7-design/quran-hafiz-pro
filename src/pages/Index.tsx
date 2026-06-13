@@ -4,7 +4,7 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, Sparkles, EyeOff, Zap, Hand, Save, Search, Headphones, ChevronLeft } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, Sparkles, EyeOff, Zap, Hand, Save, Search, Headphones, ChevronLeft, ScrollText, Clock, Volume2 } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
@@ -82,10 +82,29 @@ const HomePage = () => {
           path: '/quran', gradient: 'from-emerald-500 to-teal-600', ring: 'ring-emerald-400/30',
         },
         {
+          icon: ScrollText, titleAr: 'مصحف زاد المفسّر', titleEn: 'Quran with Tafsir',
+          descAr: 'اقرأ القرآن مكتوبًا وحوله التفسير الميسّر لكل آية — على طراز مصحف زاد المفسّر.',
+          descEn: 'Read the Quran with verse-by-verse Tafsir alongside — Zad Al-Mufassir style.',
+          path: '/mushaf-tafsir', gradient: 'from-emerald-600 to-green-800', ring: 'ring-emerald-400/30',
+          badgeAr: '📖 جديد', badgeEn: '📖 New',
+        },
+        {
           icon: BookCheck, titleAr: 'الورد اليومي', titleEn: 'Daily Wird',
           descAr: 'حدّد وردك اليومي من القرآن وتابع التزامك يومًا بيوم.',
           descEn: 'Set your daily Quran portion and track daily consistency.',
           path: '/daily-wird', gradient: 'from-cyan-500 to-sky-600', ring: 'ring-cyan-400/30',
+        },
+        {
+          icon: Clock, titleAr: 'مواقيت الصلاة', titleEn: 'Prayer Times',
+          descAr: 'مواقيت الصلاة لموقعك مع العدّاد للصلاة القادمة والتاريخ الهجري.',
+          descEn: 'Daily prayer times for your location with countdown & Hijri date.',
+          path: '/prayer-times', gradient: 'from-teal-600 to-emerald-700', ring: 'ring-teal-400/30',
+        },
+        {
+          icon: Volume2, titleAr: 'الأذان', titleEn: 'Adhan',
+          descAr: 'استمع للأذان من مكة والمدينة، وفعّل الأذان التلقائي عند دخول الوقت.',
+          descEn: 'Listen to Makkah/Madinah Adhan and enable auto-play at prayer time.',
+          path: '/adhan', gradient: 'from-amber-600 to-yellow-700', ring: 'ring-amber-400/30',
         },
         {
           icon: GraduationCap, titleAr: 'أحكام التجويد', titleEn: 'Tajweed Rules',
