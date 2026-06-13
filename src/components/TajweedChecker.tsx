@@ -37,21 +37,56 @@ const severityHighlight = {
   major: 'bg-destructive/25 text-destructive border-b-2 border-destructive',
 };
 
-// Strip Arabic diacritics (tashkeel) for matching
-const stripDiacritics = (s: string) =>
-  s.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/[إأآا]/g, 'ا').trim();
+// =====================================================================
+// STT-tolerant Arabic normalization
+// Handles common speech-to-text artifacts so matching stays stable:
+//   • diacritics / harakat / sukun / shadda / dagger-alef
+//   • tatweel (ـ) and Arabic presentation forms
+//   • zero-width chars (ZWJ/ZWNJ/BOM) and bidi marks
+//   • Quranic annotation marks (U+06D6–U+06ED) and ayah numbers (U+06DD)
+//   • Arabic & Latin punctuation, quotes, brackets
+//   • Arabic-Indic & Latin digits
+//   • alef variants (إأآٱ → ا), ya/alef-maksura (ى → ي), ta-marbuta (ة → ه)
+//   • hamza carriers (ؤ → و, ئ → ي, stray ء removed)
+//   • repeated letters from STT stutter (e.g. "اااله" → "اله")
+//   • extra/merged whitespace
+// =====================================================================
 
-// Full normalizer: diacritics, alef/ya/ta/hamza unification, whitespace collapse
-const normalizeArFull = (s: string) =>
+const stripCommon = (s: string) =>
   s
-    .replace(/[\u064B-\u0652\u0670\u0640]/g, '')
-    .replace(/[إأآا]/g, 'ا')
+    // strip zero-width + bidi + BOM
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
+    // strip diacritics, tatweel, dagger-alef, small high marks
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    // strip Quranic annotation signs & end-of-ayah marker
+    .replace(/[\u06D6-\u06ED]/g, '')
+    // strip Arabic + ASCII punctuation
+    .replace(/[\u060C\u061B\u061F\u066A-\u066D!"#$%&'()*+,\-./:;<=>?@[\]^_`{|}~،؛؟…«»""''‹›]/g, ' ')
+    // strip digits (Arabic-Indic + extended + Latin)
+    .replace(/[\u0660-\u0669\u06F0-\u06F9\d]/g, ' ');
+
+const unifyLetters = (s: string) =>
+  s
+    .replace(/[إأآٱا]/g, 'ا')
     .replace(/ى/g, 'ي')
     .replace(/ؤ/g, 'و')
     .replace(/ئ/g, 'ي')
     .replace(/ة/g, 'ه')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/ء/g, '');
+
+// Collapse 3+ repeats of the same letter to a single one (STT stutter / elongations)
+const collapseRepeats = (s: string) => s.replace(/(.)\1{2,}/g, '$1');
+
+// Strip Arabic diacritics for legacy word-matching
+const stripDiacritics = (s: string) => unifyLetters(stripCommon(s)).trim();
+
+// Full normalizer with whitespace preserved (single spaces)
+const normalizeArFull = (s: string) =>
+  collapseRepeats(unifyLetters(stripCommon(s))).replace(/\s+/g, ' ').trim();
+
+// "Loose" normalizer for merged/split-word artifacts — drops all spaces.
+// Use as a fallback when word-boundary STT noise breaks regular comparison.
+const normalizeArLoose = (s: string) => normalizeArFull(s).replace(/\s+/g, '');
 
 // Token-level alignment (LCS) between user transcript and the correct verse.
 // Returns an array of segments tagged as match | missing (in correct only) | extra (in user only).
@@ -91,7 +126,12 @@ const wordsMatch = (a: string, b: string) => {
   const na = stripDiacritics(a);
   const nb = stripDiacritics(b);
   if (!na || !nb) return false;
-  return na === nb || na.includes(nb) || nb.includes(na);
+  if (na === nb || na.includes(nb) || nb.includes(na)) return true;
+  // Loose fallback: tolerate merged-word artifacts and stray spaces
+  const la = normalizeArLoose(a);
+  const lb = normalizeArLoose(b);
+  if (!la || !lb) return false;
+  return la === lb || la.includes(lb) || lb.includes(la);
 };
 
 const severityLabel = (s: TajweedError['severity'], lang: 'ar' | 'en') => {
