@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2, Clock, Settings as SettingsIcon, Repeat, SkipForward } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, BookOpen, ChevronDown, RotateCcw, CheckCircle2, Loader2, Clock, Settings as SettingsIcon, Repeat, SkipForward, MicOff, ShieldCheck, X, Info } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { surahs } from '@/data/surahs';
 import { toast } from 'sonner';
@@ -25,6 +25,15 @@ const ManualMemorizationPage = () => {
   const [showAll, setShowAll] = useState(false);
   const sessionStartRef = useRef<number>(Date.now());
   const loggedRef = useRef<boolean>(false);
+
+  // ===== Silent-mode confirmation (one-time, dismissible) =====
+  const [showSilentConfirm, setShowSilentConfirm] = useState<boolean>(() => {
+    try { return localStorage.getItem('hafiz_manual_silent_ack') !== '1'; } catch { return true; }
+  });
+  const ackSilentMode = () => {
+    try { localStorage.setItem('hafiz_manual_silent_ack', '1'); } catch {}
+    setShowSilentConfirm(false);
+  };
 
   // ===== Optional reveal-timer (gentle nudge) =====
   const [timerEnabled, setTimerEnabled] = useState<boolean>(() => {
@@ -114,7 +123,16 @@ const ManualMemorizationPage = () => {
   useEffect(() => {
     setLoading(true);
     setVerses([]);
-    setRevealed(new Set());
+    // Restore persisted progress for this surah
+    let restored: Set<number> = new Set();
+    try {
+      const raw = localStorage.getItem(`hafiz_manual_progress_${selectedSurah}`);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) restored = new Set(arr as number[]);
+      }
+    } catch {}
+    setRevealed(restored);
     setShowAll(false);
     loggedRef.current = false;
     sessionStartRef.current = Date.now();
@@ -132,6 +150,17 @@ const ManualMemorizationPage = () => {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedSurah]);
+
+  // Auto-save progress to localStorage whenever `revealed` changes (debounced is overkill here)
+  useEffect(() => {
+    if (verses.length === 0) return;
+    try {
+      localStorage.setItem(
+        `hafiz_manual_progress_${selectedSurah}`,
+        JSON.stringify(Array.from(revealed)),
+      );
+    } catch {}
+  }, [revealed, selectedSurah, verses.length]);
 
   // Auto-log when user reveals all verses (treated as a completed review session)
   useEffect(() => {
@@ -169,6 +198,7 @@ const ManualMemorizationPage = () => {
   const reset = () => {
     setRevealed(new Set());
     setShowAll(false);
+    try { localStorage.removeItem(`hafiz_manual_progress_${selectedSurah}`); } catch {}
   };
 
   // Reveal verses one-by-one in order — no listening / no recording
@@ -228,10 +258,21 @@ const ManualMemorizationPage = () => {
             <ArrowBack size={18} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-foreground text-base font-arabic flex items-center gap-2">
-              <BookOpen size={18} className="text-primary" />
-              {lang === 'ar' ? 'الحفظ اليدوي' : 'Manual Memorization'}
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-bold text-foreground text-base font-arabic flex items-center gap-2">
+                <BookOpen size={18} className="text-primary" />
+                {lang === 'ar' ? 'الحفظ اليدوي' : 'Manual Memorization'}
+              </h1>
+              {/* Silent-mode badge — always on, click for info */}
+              <button
+                onClick={() => setShowSilentConfirm(true)}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold"
+                title={lang === 'ar' ? 'وضع صامت — لا ميكروفون ولا تسجيل' : 'Silent mode — no mic, no recording'}
+              >
+                <MicOff size={10} />
+                {lang === 'ar' ? '🔇 صامت' : '🔇 Silent'}
+              </button>
+            </div>
             <p className="text-[10px] text-muted-foreground">
               {lang === 'ar'
                 ? 'اقرأ من حفظك ثم اضغط على رقم الآية لكشفها والتحقق'
@@ -249,6 +290,41 @@ const ManualMemorizationPage = () => {
             <SettingsIcon size={16} />
           </button>
         </div>
+
+        {/* Silent-mode confirmation card (shown once, or whenever user re-opens via badge) */}
+        {showSilentConfirm && (
+          <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/30 p-3 animate-fade-in">
+            <div className="flex items-start gap-2">
+              <div className="w-8 h-8 rounded-md bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <ShieldCheck size={16} className="text-emerald-700 dark:text-emerald-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Info size={11} className="text-emerald-700 dark:text-emerald-300" />
+                  {lang === 'ar' ? 'تأكيد: هذا الوضع صامت تمامًا' : 'Confirm: this mode is fully silent'}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                  {lang === 'ar'
+                    ? '• لن نطلب إذن الميكروفون.\n• لن يتم تسجيل أي صوت.\n• تكشف الآيات يدويًا للتحقق فقط.'
+                    : '• Mic permission is NOT requested.\n• No audio is recorded.\n• You reveal verses manually for self-check only.'}
+                </p>
+                <button
+                  onClick={ackSilentMode}
+                  className="mt-2 text-[11px] px-3 py-1 rounded-full bg-emerald-600 text-white font-semibold hover:bg-emerald-700"
+                >
+                  {lang === 'ar' ? 'فهمت، تابع' : 'Got it, continue'}
+                </button>
+              </div>
+              <button
+                onClick={ackSilentMode}
+                className="w-6 h-6 rounded-md hover:bg-emerald-500/15 flex items-center justify-center shrink-0"
+                aria-label="close"
+              >
+                <X size={12} className="text-emerald-700 dark:text-emerald-300" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {showSettings && (
           <div className="mb-3 rounded-lg border border-border bg-card p-3 space-y-2 animate-fade-in">
@@ -341,16 +417,34 @@ const ManualMemorizationPage = () => {
         {/* Progress + actions */}
         {verses.length > 0 && (
           <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="font-semibold text-foreground">
+                  {lang === 'ar' ? '📊 تقدم الكشف' : '📊 Reveal progress'}
+                </span>
+                <span className="text-muted-foreground tabular-nums">
+                  {revealed.size}/{verses.length} · {progress}%
+                  <span className="ms-1 text-primary/70" title={lang === 'ar' ? 'محفوظ تلقائيًا' : 'Auto-saved'}>💾</span>
+                </span>
+              </div>
+              <div className="relative h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-primary transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-500 ease-out"
                   style={{ width: `${progress}%` }}
                 />
+                {progress > 0 && progress < 100 && (
+                  <div
+                    className="absolute top-0 h-full w-1 bg-white/40"
+                    style={{ left: `calc(${progress}% - 2px)` }}
+                  />
+                )}
               </div>
-              <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
-                {revealed.size}/{verses.length}
-              </span>
+              {progress === 100 && (
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 animate-fade-in">
+                  <CheckCircle2 size={11} />
+                  {lang === 'ar' ? 'وصلت للنهاية! 🎉' : 'You reached the end! 🎉'}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button
