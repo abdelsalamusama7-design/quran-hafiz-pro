@@ -4,7 +4,7 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, MessageCircle, Sparkles, EyeOff, Zap, Hand, Save } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, MessageCircle, Sparkles, EyeOff, Zap, Hand, Save, Search } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
@@ -86,6 +86,20 @@ const HomePage = () => {
   return (
     <div className="pb-28 px-4 pt-4 md:pt-8 max-w-lg mx-auto space-y-5 md:space-y-8">
       <IslamicHeader />
+
+      {/* Universal search entry */}
+      <button
+        onClick={() => navigate('/search')}
+        className="w-full flex items-center gap-2 px-4 h-12 rounded-2xl border bg-card hover:bg-muted/60 transition-colors text-start shadow-card"
+      >
+        <Search className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground flex-1 truncate">
+          {lang === 'ar'
+            ? 'ابحث في السور، الآيات، أو الخدمات...'
+            : 'Search surahs, verses, or services...'}
+        </span>
+      </button>
+
       <StatsCards />
 
       {/* Highlighted: Manual Memorization — silent, paper-style review (no mic / no recording) */}
