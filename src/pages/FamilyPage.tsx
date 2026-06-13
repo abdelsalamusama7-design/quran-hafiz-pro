@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Users, Plus, Copy, Target, BookOpen, Award, Trash2, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from 'recharts';
+import ParentNotificationsBell from '@/components/ParentNotificationsBell';
+import { notifyParentOfGoal } from '@/lib/notifyParents';
 
 interface FamilyGroup {
   id: string;
@@ -197,7 +199,11 @@ const FamilyPage = () => {
   };
 
   const completeGoal = async (id: string) => {
+    const goal = goals.find(g => g.id === id);
     await supabase.from('parent_goals').update({ completed: true }).eq('id', id);
+    if (goal) {
+      notifyParentOfGoal({ id: goal.id, title: goal.title, reward: goal.reward });
+    }
     if (user) await loadFamily(user.id);
   };
 
@@ -264,7 +270,10 @@ const FamilyPage = () => {
 
   return (
     <div className="pb-28 px-4 pt-4 max-w-3xl mx-auto space-y-4">
-      <PageHeader title={family.name} />
+      <div className="flex items-center justify-between">
+        <PageHeader title={family.name} />
+        {isParent && user && <ParentNotificationsBell parentUserId={user.id} />}
+      </div>
 
       {/* Invite code card */}
       {isParent && (

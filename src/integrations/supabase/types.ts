@@ -300,6 +300,48 @@ export type Database = {
           },
         ]
       }
+      parent_notifications: {
+        Row: {
+          child_name: string
+          child_user_id: string
+          created_at: string
+          family_id: string
+          id: string
+          message: string
+          metadata: Json
+          parent_user_id: string
+          read: boolean
+          title: string
+          type: string
+        }
+        Insert: {
+          child_name?: string
+          child_user_id: string
+          created_at?: string
+          family_id: string
+          id?: string
+          message: string
+          metadata?: Json
+          parent_user_id: string
+          read?: boolean
+          title: string
+          type: string
+        }
+        Update: {
+          child_name?: string
+          child_user_id?: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          message?: string
+          metadata?: Json
+          parent_user_id?: string
+          read?: boolean
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
