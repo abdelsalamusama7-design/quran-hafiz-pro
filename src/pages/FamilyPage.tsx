@@ -270,7 +270,10 @@ const FamilyPage = () => {
 
   return (
     <div className="pb-28 px-4 pt-4 max-w-3xl mx-auto space-y-4">
-      <PageHeader title={family.name} />
+      <div className="flex items-center justify-between">
+        <PageHeader title={family.name} />
+        {isParent && user && <ParentNotificationsBell parentUserId={user.id} />}
+      </div>
 
       {/* Invite code card */}
       {isParent && (
