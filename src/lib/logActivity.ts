@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { queueActivity } from '@/hooks/useActivitySync';
+import { notifyParentOfSession } from '@/lib/notifyParents';
 
 export interface LogActivityParams {
   activityType: 'live_recitation' | 'memorization' | 'quiz' | 'recitation' | 'review' | string;
@@ -65,6 +66,14 @@ export const logActivity = async (params: LogActivityParams): Promise<{ success:
       queueActivity(payload);
       return { success: true, queued: true };
     }
+    // Fire-and-forget parent notification
+    notifyParentOfSession({
+      activityType: params.activityType,
+      surahNumber: params.surahNumber ?? null,
+      versesCount: params.versesCount ?? null,
+      durationMinutes: params.durationMinutes ?? null,
+      pointsEarned: params.pointsEarned ?? null,
+    });
     return { success: true, queued: false };
   } catch (e) {
     console.error('logActivity error:', e);
