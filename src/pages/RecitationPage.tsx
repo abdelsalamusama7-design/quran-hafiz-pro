@@ -117,6 +117,7 @@ const RecitationPage = () => {
   // Auto-advance + session tracking
   const [versesCompleted, setVersesCompleted] = useState(0);
   const [autoAdvance, setAutoAdvance] = useState(true);
+  const [repeatLowAccuracy, setRepeatLowAccuracy] = useState(true);
   const sessionStartRef = useRef<number | null>(null);
   const accuracySumRef = useRef(0);
   const accuracyCountRef = useRef(0);
@@ -140,6 +141,10 @@ const RecitationPage = () => {
   useEffect(() => { versesCompletedRef.current = versesCompleted; }, [versesCompleted]);
   const autoAdvanceRef = useRef(autoAdvance);
   useEffect(() => { autoAdvanceRef.current = autoAdvance; }, [autoAdvance]);
+  const repeatLowAccuracyRef = useRef(repeatLowAccuracy);
+  useEffect(() => { repeatLowAccuracyRef.current = repeatLowAccuracy; }, [repeatLowAccuracy]);
+  // Track how many times the student has repeated the current verse due to low accuracy
+  const verseRepeatCountRef = useRef<Record<number, number>>({});
   const versesRef = useRef(verses);
   useEffect(() => { versesRef.current = verses; }, [verses]);
 
@@ -480,6 +485,49 @@ const RecitationPage = () => {
             speak(lang === 'ar' ? 'ما شاء الله، أتممت السورة' : 'MashaAllah');
           }
         }
+
+        // === REPEAT MODE on LOW ACCURACY (40% ≤ acc < 85%) ===
+        else if (
+          repeatLowAccuracyRef.current &&
+          data.status === 'correct' &&
+          (data.accuracy ?? 0) >= 40 &&
+          (data.accuracy ?? 0) < 85
+        ) {
+          const vNum = ctx.verseNum;
+          const prevCount = verseRepeatCountRef.current[vNum] ?? 0;
+          const nextCount = prevCount + 1;
+          verseRepeatCountRef.current[vNum] = nextCount;
+          const acc = data.accuracy ?? 0;
+
+          if (nextCount < 3) {
+            // Suggest repetition — stay on same verse, reset per-verse buffers
+            setLiveMessages(prev => [...prev, {
+              id: ++msgIdRef.current,
+              type: 'system',
+              text: lang === 'ar'
+                ? `🔁 الدقة ${acc}% — تحت 85%. كرّر الآية ${vNum} مرة أخرى للإتقان (محاولة ${nextCount}/3).`
+                : `🔁 Accuracy ${acc}% — below 85%. Repeat verse ${vNum} for mastery (attempt ${nextCount}/3).`,
+              timestamp: new Date(),
+            }]);
+            speak(lang === 'ar' ? 'كرّر الآية مرة أخرى للإتقان' : 'Repeat the verse for mastery');
+            // Reset per-verse buffers so the next attempt is captured fresh
+            lastProcessedRef.current = '';
+            lastUserTextRef.current = '';
+            accumulatedTranscriptRef.current = '';
+            previousMistakesRef.current = [];
+          } else {
+            // 3 attempts done — let the student move on with encouragement
+            setLiveMessages(prev => [...prev, {
+              id: ++msgIdRef.current,
+              type: 'system',
+              text: lang === 'ar'
+                ? `📝 جرّبت الآية ${vNum} ٣ مرات. تابع للآية التالية وارجع لاحقًا لمراجعتها.`
+                : `📝 You tried verse ${vNum} 3 times. Move on and revisit it later.`,
+              timestamp: new Date(),
+            }]);
+            verseRepeatCountRef.current[vNum] = 0;
+          }
+        }
       }
     } catch (err: any) {
       console.error('Live correction error:', err);
@@ -533,6 +581,7 @@ const RecitationPage = () => {
     accumulatedTranscriptRef.current = '';
     msgIdRef.current = 0;
     previousMistakesRef.current = [];
+    verseRepeatCountRef.current = {};
     mistakeWordsRef.current = new Map();
     setSessionSummary(null);
     setSessionMistakes([]);
@@ -1194,8 +1243,8 @@ const RecitationPage = () => {
             )}
           </div>
 
-          {/* Stats row: accuracy + verses completed + auto-advance toggle */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* Stats row: accuracy + verses completed + auto-advance toggle + repeat-low toggle */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div className={`rounded-xl p-2.5 text-center ${
               liveAccuracy === null ? 'bg-muted text-muted-foreground' :
               liveAccuracy >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' :
@@ -1217,6 +1266,16 @@ const RecitationPage = () => {
             >
               <p className="text-[10px] opacity-80">{lang === 'ar' ? 'انتقال تلقائي' : 'Auto-advance'}</p>
               <p className="text-xs font-bold mt-0.5">{autoAdvance ? (lang === 'ar' ? '✓ مُفعّل' : '✓ ON') : (lang === 'ar' ? 'مُعطّل' : 'OFF')}</p>
+            </button>
+            <button
+              onClick={() => setRepeatLowAccuracy(v => !v)}
+              title={lang === 'ar' ? 'يقترح تكرار الآية تلقائيًا إذا كانت الدقة أقل من 85%' : 'Auto-suggest repeat if accuracy < 85%'}
+              className={`rounded-xl p-2.5 text-center transition-all ${
+                repeatLowAccuracy ? 'bg-amber-500 text-white shadow-md' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <p className="text-[10px] opacity-90">{lang === 'ar' ? '🔁 تكرار <85%' : '🔁 Repeat <85%'}</p>
+              <p className="text-xs font-bold mt-0.5">{repeatLowAccuracy ? (lang === 'ar' ? '✓ مُفعّل' : '✓ ON') : (lang === 'ar' ? 'مُعطّل' : 'OFF')}</p>
             </button>
           </div>
 

@@ -4,81 +4,151 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, MessageCircle, Sparkles, EyeOff, Zap, Hand, Save, Search } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, Sparkles, EyeOff, Zap, Hand, Save, Search, Headphones, ChevronLeft } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
 
-  // Recitation modes — surfaced on the home page so users discover them immediately
-  const recitationModes = [
-    {
-      id: 'live-listen',
-      icon: MessageCircle,
-      labelAr: 'تسميع مباشر',
-      labelEn: 'Live Listen',
-      descAr: 'شيخ AI يسمعلك ويصحح فوراً',
-      descEn: 'AI sheikh listens & corrects live',
-      gradient: 'from-emerald-500 to-teal-600',
-      ring: 'ring-emerald-400/30',
-    },
-    {
-      id: 'auto-detect',
-      icon: Sparkles,
-      labelAr: 'اقرأ وأنا أتابعك',
-      labelEn: 'Auto Detect',
-      descAr: 'اقرأ أي آية وسأحددها تلقائياً',
-      descEn: "Read any verse, I'll identify it",
-      gradient: 'from-violet-500 to-purple-600',
-      ring: 'ring-violet-400/30',
-    },
-    {
-      id: 'correct',
-      icon: Mic,
-      labelAr: 'تصحيح التلاوة',
-      labelEn: 'Correction',
-      descAr: 'اختر آية وسجّل تلاوتك',
-      descEn: 'Pick a verse and record',
-      gradient: 'from-rose-500 to-pink-600',
-      ring: 'ring-rose-400/30',
-    },
-    {
-      id: 'blind',
-      icon: EyeOff,
-      labelAr: 'حفظ بدون نظر',
-      labelEn: 'Blind Mode',
-      descAr: 'اختبر حفظك بدون النص',
-      descEn: 'Test memorization without text',
-      gradient: 'from-amber-500 to-orange-600',
-      ring: 'ring-amber-400/30',
-    },
-    {
-      id: 'practice',
-      icon: Zap,
-      labelAr: 'وضع التمرين',
-      labelEn: 'Practice',
-      descAr: 'تدرب على سورة كاملة',
-      descEn: 'Practice a full surah',
-      gradient: 'from-blue-500 to-indigo-600',
-      ring: 'ring-blue-400/30',
-    },
-  ];
+  // ========= ALL service buttons (each with a clear, friendly Arabic/English usage tip) =========
+  // Grouped into 3 categories so the home page reads as a clear, browseable directory.
+  type Service = {
+    icon: any;
+    titleAr: string; titleEn: string;
+    descAr: string; descEn: string;   // one-line "what does this button do?" — pro tone
+    path: string;
+    gradient: string;
+    ring: string;
+    badgeAr?: string; badgeEn?: string;
+  };
 
-  const quickActions = [
-    { icon: BookOpen, label: lang === 'ar' ? 'القرآن الكريم' : 'Quran', action: () => navigate('/quran'), gradient: 'from-emerald-500 to-teal-600', ring: 'ring-emerald-400/30' },
-    { icon: Hand, label: lang === 'ar' ? 'الحفظ اليدوي' : 'Manual Memorization', action: () => navigate('/manual-memorization'), gradient: 'from-lime-500 to-green-600', ring: 'ring-lime-400/30' },
-    { icon: Save, label: lang === 'ar' ? 'سجّل وراجع' : 'Record & Review', action: () => navigate('/record-review'), gradient: 'from-red-500 to-rose-600', ring: 'ring-red-400/30' },
-    { icon: Mic, label: lang === 'ar' ? 'تصحيح التلاوة' : 'Recitation', action: () => navigate('/recitation'), gradient: 'from-rose-500 to-pink-600', ring: 'ring-rose-400/30' },
-    { icon: HelpCircle, label: t('quiz'), action: () => navigate('/quiz'), gradient: 'from-blue-500 to-indigo-600', ring: 'ring-blue-400/30' },
-    { icon: GraduationCap, label: lang === 'ar' ? 'التجويد' : 'Tajweed', action: () => navigate('/tajweed'), gradient: 'from-amber-500 to-orange-600', ring: 'ring-amber-400/30' },
-    { icon: Bot, label: lang === 'ar' ? 'الشيخ AI' : 'AI Tutor', action: () => navigate('/ai-tutor'), gradient: 'from-violet-500 to-purple-600', ring: 'ring-violet-400/30' },
-    { icon: BookCheck, label: lang === 'ar' ? 'الورد اليومي' : 'Daily Wird', action: () => navigate('/daily-wird'), gradient: 'from-cyan-500 to-sky-600', ring: 'ring-cyan-400/30' },
-    { icon: Trophy, label: lang === 'ar' ? 'الإنجازات' : 'Badges', action: () => navigate('/badges'), gradient: 'from-yellow-500 to-amber-600', ring: 'ring-yellow-400/30' },
-    { icon: BarChart3, label: lang === 'ar' ? 'التقدم' : 'Progress', action: () => navigate('/progress'), gradient: 'from-fuchsia-500 to-pink-600', ring: 'ring-fuchsia-400/30' },
-    { icon: Baby, label: lang === 'ar' ? 'وضع الأطفال' : 'Kids Mode', action: () => navigate('/kids'), gradient: 'from-pink-500 to-rose-600', ring: 'ring-pink-400/30' },
-    { icon: Users, label: lang === 'ar' ? 'المجتمع' : 'Community', action: () => navigate('/community'), gradient: 'from-teal-500 to-emerald-600', ring: 'ring-teal-400/30' },
-    { icon: HomeIcon, label: lang === 'ar' ? 'العائلة' : 'Family', action: () => navigate('/family'), gradient: 'from-orange-500 to-red-600', ring: 'ring-orange-400/30' },
-    { icon: Settings, label: lang === 'ar' ? 'الإعدادات' : 'Settings', action: () => navigate('/settings'), gradient: 'from-slate-500 to-slate-700', ring: 'ring-slate-400/30' },
+  const groups: { titleAr: string; titleEn: string; icon: string; items: Service[] }[] = [
+    {
+      titleAr: 'التسميع والمراجعة', titleEn: 'Recite & Review', icon: '🎙️',
+      items: [
+        {
+          icon: Headphones, titleAr: 'تسميع مباشر', titleEn: 'Live Recitation',
+          descAr: 'سمّع للشيخ AI الذي يستمع ويصحّحك آية بآية بشكل فوري.',
+          descEn: 'Recite to the AI Sheikh — listens & corrects you verse by verse, live.',
+          path: '/recitation?mode=live-listen', gradient: 'from-emerald-500 to-teal-600', ring: 'ring-emerald-400/30',
+          badgeAr: '⭐ موصى به', badgeEn: '⭐ Recommended',
+        },
+        {
+          icon: Sparkles, titleAr: 'اقرأ وأنا أتابعك', titleEn: 'Auto-Detect',
+          descAr: 'ابدأ بأي آية وسيتعرّف عليها التطبيق ويتابعك دون اختيار يدوي.',
+          descEn: "Read any verse and the app auto-identifies it and follows along.",
+          path: '/recitation?mode=auto-detect', gradient: 'from-violet-500 to-purple-600', ring: 'ring-violet-400/30',
+        },
+        {
+          icon: Mic, titleAr: 'تصحيح التلاوة', titleEn: 'Correct Recitation',
+          descAr: 'اختر آية وسجّل تلاوتك ثم احصل على تقييم نطق وتجويد مفصّل.',
+          descEn: 'Pick a verse, record your recitation, get detailed pronunciation feedback.',
+          path: '/recitation?mode=correct', gradient: 'from-rose-500 to-pink-600', ring: 'ring-rose-400/30',
+        },
+        {
+          icon: Save, titleAr: 'سجّل وراجع نفسك', titleEn: 'Record & Self-Review',
+          descAr: 'سجّل صوتك بضغطة واحدة ثم أعد تشغيله بجانب النص لمراجعة حفظك بنفسك.',
+          descEn: 'Tap once to record, then replay alongside the text to self-review.',
+          path: '/record-review', gradient: 'from-red-500 to-rose-600', ring: 'ring-red-400/30',
+        },
+      ],
+    },
+    {
+      titleAr: 'الحفظ والدراسة', titleEn: 'Memorize & Study', icon: '📖',
+      items: [
+        {
+          icon: Hand, titleAr: 'الحفظ اليدوي الصامت', titleEn: 'Silent Manual Memorization',
+          descAr: 'ورقة فاضية — اقرأ من حفظك واكشف كل آية للتحقق. بدون ميكروفون ولا تسجيل.',
+          descEn: 'Blank page — recite from memory & reveal each verse to verify. No mic, no recording.',
+          path: '/manual-memorization', gradient: 'from-lime-500 to-emerald-600', ring: 'ring-lime-400/30',
+          badgeAr: '🔇 صامت', badgeEn: '🔇 Silent',
+        },
+        {
+          icon: EyeOff, titleAr: 'حفظ بدون نظر', titleEn: 'Blind Memorization',
+          descAr: 'اختبر حفظك للسورة كاملة بدون عرض النص قبل المحاولة.',
+          descEn: 'Test your memorization of a full surah without seeing the text first.',
+          path: '/recitation?mode=blind', gradient: 'from-amber-500 to-orange-600', ring: 'ring-amber-400/30',
+        },
+        {
+          icon: Zap, titleAr: 'وضع التمرين', titleEn: 'Practice Mode',
+          descAr: 'تدرب على سورة كاملة بأسلوب تكرار ومراجعة موجّهة للإتقان.',
+          descEn: 'Drill a full surah with guided repetition & spaced review.',
+          path: '/recitation?mode=practice', gradient: 'from-blue-500 to-indigo-600', ring: 'ring-blue-400/30',
+        },
+        {
+          icon: BookOpen, titleAr: 'القرآن الكريم', titleEn: 'The Holy Quran',
+          descAr: 'تصفّح المصحف الكامل بكل السور والآيات للقراءة والمراجعة.',
+          descEn: 'Browse the full Mushaf — all surahs and verses for reading & review.',
+          path: '/quran', gradient: 'from-emerald-500 to-teal-600', ring: 'ring-emerald-400/30',
+        },
+        {
+          icon: BookCheck, titleAr: 'الورد اليومي', titleEn: 'Daily Wird',
+          descAr: 'حدّد وردك اليومي من القرآن وتابع التزامك يومًا بيوم.',
+          descEn: 'Set your daily Quran portion and track daily consistency.',
+          path: '/daily-wird', gradient: 'from-cyan-500 to-sky-600', ring: 'ring-cyan-400/30',
+        },
+        {
+          icon: GraduationCap, titleAr: 'أحكام التجويد', titleEn: 'Tajweed Rules',
+          descAr: 'تعلّم أحكام التجويد بشرح مبسّط مع أمثلة من القرآن.',
+          descEn: 'Learn tajweed rules with simple explanations and Quranic examples.',
+          path: '/tajweed', gradient: 'from-amber-500 to-orange-600', ring: 'ring-amber-400/30',
+        },
+        {
+          icon: HelpCircle, titleAr: 'اختبار الحفظ', titleEn: 'Memorization Quiz',
+          descAr: 'أسئلة سريعة لقياس مدى إتقانك للسور والآيات التي حفظتها.',
+          descEn: 'Quick quizzes to measure mastery of surahs and verses you memorized.',
+          path: '/quiz', gradient: 'from-blue-500 to-indigo-600', ring: 'ring-blue-400/30',
+        },
+        {
+          icon: Bot, titleAr: 'الشيخ AI', titleEn: 'AI Sheikh',
+          descAr: 'اسأل المعلّم الذكي عن أي آية أو حكم تجويد أو طريقة حفظ.',
+          descEn: 'Ask the smart tutor about any verse, tajweed rule, or memorization tip.',
+          path: '/ai-tutor', gradient: 'from-violet-500 to-purple-600', ring: 'ring-violet-400/30',
+        },
+      ],
+    },
+    {
+      titleAr: 'المجتمع والتقدم', titleEn: 'Community & Progress', icon: '🏆',
+      items: [
+        {
+          icon: Users, titleAr: 'المجتمع', titleEn: 'Community',
+          descAr: 'انضم لحلقات تحفيظ، شارك في تحديات جماعية، وتابع ليدربورد الحفّاظ.',
+          descEn: 'Join memorization circles, group challenges, and the leaderboard.',
+          path: '/community', gradient: 'from-teal-500 to-emerald-600', ring: 'ring-teal-400/30',
+          badgeAr: '🆕 جديد', badgeEn: '🆕 New',
+        },
+        {
+          icon: HomeIcon, titleAr: 'العائلة', titleEn: 'Family',
+          descAr: 'لولي الأمر/المعلّم — تابع تقدّم أطفالك وسجلّ جلساتهم وحدّد أهدافًا لهم.',
+          descEn: 'For parents/teachers — track children progress, sessions & goals.',
+          path: '/family', gradient: 'from-orange-500 to-red-600', ring: 'ring-orange-400/30',
+        },
+        {
+          icon: BarChart3, titleAr: 'تقدمي', titleEn: 'My Progress',
+          descAr: 'تقارير مفصّلة عن آيات حفظتها، دقة التسميع، أيام المتابعة، والإنجازات.',
+          descEn: 'Detailed reports on verses memorized, accuracy, streaks & achievements.',
+          path: '/progress', gradient: 'from-fuchsia-500 to-pink-600', ring: 'ring-fuchsia-400/30',
+        },
+        {
+          icon: Trophy, titleAr: 'إنجازاتي', titleEn: 'Badges',
+          descAr: 'شارات تحصل عليها كلما حفظت سورة جديدة أو حافظت على وردك اليومي.',
+          descEn: 'Earn badges as you memorize new surahs and keep your daily wird.',
+          path: '/badges', gradient: 'from-yellow-500 to-amber-600', ring: 'ring-yellow-400/30',
+        },
+        {
+          icon: Baby, titleAr: 'وضع الأطفال', titleEn: 'Kids Mode',
+          descAr: 'واجهة مرحة بألوان جذّابة وأصوات لتشجيع الأطفال على الحفظ.',
+          descEn: 'Playful colorful interface with sounds to encourage kids to memorize.',
+          path: '/kids', gradient: 'from-pink-500 to-rose-600', ring: 'ring-pink-400/30',
+        },
+        {
+          icon: Settings, titleAr: 'الإعدادات', titleEn: 'Settings',
+          descAr: 'تخصيص اللغة، الإشعارات، الميكروفون، وإعدادات حسابك.',
+          descEn: 'Customize language, notifications, microphone & account settings.',
+          path: '/settings', gradient: 'from-slate-500 to-slate-700', ring: 'ring-slate-400/30',
+        },
+      ],
+    },
   ];
 
   const recentSurahs = surahs.filter(s => [1, 36, 55, 67, 112, 114].includes(s.id));
@@ -103,139 +173,72 @@ const HomePage = () => {
 
       <StatsCards />
 
-      {/* Primary CTAs — side-by-side on tablet+, stacked on mobile */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-        {/* Manual Memorization — silent */}
-        <button
-          onClick={() => navigate('/manual-memorization')}
-          className="group relative w-full text-start overflow-hidden rounded-2xl border-2 border-[hsl(var(--primary)/0.25)] bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(154_60%_28%)] text-white p-5 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] animate-fade-in"
-          style={{ borderInlineStartWidth: '4px', borderInlineStartColor: 'hsl(var(--gold))' }}
-        >
-          <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-white/15 backdrop-blur text-[10px] font-bold">
-            {lang === 'ar' ? '📵 بدون ميكروفون' : '📵 No mic'}
-          </span>
-          <div className="flex items-center gap-4">
-            <div className="shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-white ring-2 ring-white/20 group-hover:scale-110 transition-transform">
-              <Hand className="w-7 h-7" strokeWidth={2.2} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-base leading-tight" style={{ fontFamily: 'Amiri, serif' }}>
-                {lang === 'ar' ? 'الحفظ اليدوي الصامت' : 'Silent Manual Memorization'}
-              </p>
-              <p className="text-xs text-white/85 mt-1 leading-snug font-arabic">
-                {lang === 'ar'
-                  ? 'ورقة فاضية — احفظ مع نفسك، اكشف كل آية للتحقق.'
-                  : 'Blank page — recite from memory, tap to reveal.'}
-              </p>
-            </div>
-          </div>
-        </button>
-
-        {/* Record & Review */}
-        <button
-          onClick={() => navigate('/record-review')}
-          className="group relative w-full text-start overflow-hidden rounded-2xl border-2 border-border bg-card p-5 shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] animate-fade-in"
-          style={{ borderInlineStartWidth: '4px', borderInlineStartColor: 'hsl(var(--destructive))' }}
-        >
-          <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive text-[10px] font-bold">
-            {lang === 'ar' ? '🎙️ تسجيل ذاتي' : '🎙️ Self record'}
-          </span>
-          <div className="flex items-center gap-4">
-            <div className="shrink-0 w-14 h-14 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center ring-2 ring-destructive/20 group-hover:scale-110 transition-transform">
-              <Save className="w-7 h-7" strokeWidth={2.2} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-foreground text-base leading-tight" style={{ fontFamily: 'Amiri, serif' }}>
-                {lang === 'ar' ? 'سجّل تسميعك وراجعه' : 'Record & Review Yourself'}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1 leading-snug font-arabic">
-                {lang === 'ar'
-                  ? 'سجّل صوتك، ثم أعد تشغيله وقارنه بالنص.'
-                  : 'Record your voice, then replay against text.'}
-              </p>
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Recitation Modes — surfaced from /recitation for instant access */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2" style={{ fontFamily: 'Amiri, serif' }}>
-            <span className="text-[hsl(var(--gold))]">✦</span>
-            {lang === 'ar' ? 'أوضاع التسميع' : 'Recitation Modes'}
-          </h2>
-          <button
-            onClick={() => navigate('/recitation')}
-            className="text-xs md:text-sm text-primary font-bold hover:underline"
-          >
-            {lang === 'ar' ? 'عرض الكل →' : 'See all →'}
-          </button>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-          {recitationModes.map(({ id, icon: Icon, labelAr, labelEn, descAr, descEn, gradient, ring }, idx) => (
-            <button
-              key={id}
-              onClick={() => navigate(`/recitation?mode=${id}`)}
-              style={{ animationDelay: `${idx * 50}ms` }}
-              className={`group relative bg-card border border-border/50 rounded-2xl p-3 md:p-4 text-start shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-1 active:scale-95 hover:border-[hsl(var(--gold)/0.5)] animate-fade-in overflow-hidden ${
-                id === 'live-listen' ? 'col-span-2 md:col-span-3 lg:col-span-4' : ''
-              }`}
+      {/* ALL services grouped — every button has a clear "what does it do?" caption */}
+      {groups.map((group, gi) => (
+        <section key={group.titleAr} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2
+              className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2"
+              style={{ fontFamily: 'Amiri, serif' }}
             >
-              {/* Glow on hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+              <span className="text-[hsl(var(--gold))]">✦</span>
+              <span>{group.icon}</span>
+              {lang === 'ar' ? group.titleAr : group.titleEn}
+            </h2>
+            <span className="text-[10px] md:text-xs text-muted-foreground font-medium tabular-nums">
+              {group.items.length} {lang === 'ar' ? 'خدمة' : 'services'}
+            </span>
+          </div>
 
-              <div className="relative flex items-center gap-3">
-                <div className={`shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-md ring-4 ${ring} group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className="w-6 h-6 drop-shadow" strokeWidth={2.2} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-foreground font-arabic text-sm leading-tight">
-                    {lang === 'ar' ? labelAr : labelEn}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {group.items.map((s, idx) => {
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.path + s.titleAr}
+                  onClick={() => navigate(s.path)}
+                  style={{ animationDelay: `${(gi * 4 + idx) * 40}ms` }}
+                  className="group relative w-full text-start overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-card hover:shadow-islamic hover:border-[hsl(var(--gold)/0.5)] hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 animate-fade-in flex flex-col h-full"
+                  aria-label={lang === 'ar' ? `${s.titleAr} — ${s.descAr}` : `${s.titleEn} — ${s.descEn}`}
+                  title={lang === 'ar' ? s.descAr : s.descEn}
+                >
+                  {/* Subtle gradient wash on hover */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-0 group-hover:opacity-[0.06] transition-opacity duration-300 pointer-events-none`} />
+
+                  {s.badgeAr && (
+                    <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] text-[10px] font-bold border border-[hsl(var(--gold)/0.3)]">
+                      {lang === 'ar' ? s.badgeAr : s.badgeEn}
+                    </span>
+                  )}
+
+                  <div className="relative flex items-start gap-3">
+                    <div className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-white shadow-md ring-4 ${s.ring} group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-6 h-6 md:w-7 md:h-7 drop-shadow" strokeWidth={2.2} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="font-bold text-foreground text-sm md:text-base leading-tight"
+                        style={{ fontFamily: 'Amiri, serif' }}
+                      >
+                        {lang === 'ar' ? s.titleAr : s.titleEn}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="relative text-[12px] md:text-[13px] text-muted-foreground mt-3 leading-relaxed font-arabic flex-1">
+                    {lang === 'ar' ? s.descAr : s.descEn}
                   </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
-                    {lang === 'ar' ? descAr : descEn}
-                  </p>
-                </div>
-              </div>
 
-              {id === 'live-listen' && (
-                <span className="absolute top-2 end-2 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[9px] font-bold">
-                  {lang === 'ar' ? '⭐ موصى به' : '⭐ Recommended'}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl md:text-2xl font-bold text-foreground mb-4 flex items-center gap-2" style={{ fontFamily: 'Amiri, serif' }}>
-          <span className="text-[hsl(var(--gold))]">✦</span>
-          {lang === 'ar' ? 'الخدمات' : 'Services'}
-        </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3 md:gap-4">
-          {quickActions.map(({ icon: Icon, label, action, gradient, ring }, idx) => (
-            <button
-              key={label}
-              onClick={action}
-              style={{ animationDelay: `${idx * 50}ms` }}
-              className={`group relative bg-card border border-border/50 rounded-2xl p-3 md:p-4 flex flex-col items-center gap-2.5 shadow-card hover:shadow-islamic transition-all duration-300 hover:-translate-y-1 active:scale-95 hover:border-primary/30 animate-fade-in overflow-hidden`}
-            >
-              {/* Glow background on hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-
-              <div className={`relative w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-lg ring-4 ${ring} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-                <Icon className="w-7 h-7 md:w-8 md:h-8 drop-shadow" strokeWidth={2.2} />
-                {/* Pulse ring on hover */}
-                <span className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-40 group-hover:animate-ping`} />
-              </div>
-              <span className="relative text-[11px] md:text-xs font-semibold text-foreground text-center leading-tight line-clamp-2">{label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+                  <div className="relative flex items-center justify-end mt-3 text-[11px] font-bold text-primary opacity-80 group-hover:opacity-100 transition-opacity">
+                    <span>{lang === 'ar' ? 'ابدأ الآن' : 'Open'}</span>
+                    <ChevronLeft className="w-3.5 h-3.5 ms-0.5 group-hover:-translate-x-1 transition-transform rtl:rotate-180" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
 
       {/* Popular Surahs */}
       <div>
