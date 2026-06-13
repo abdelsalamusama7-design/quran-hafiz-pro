@@ -11,10 +11,128 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Plus, Copy, Target, BookOpen, Award, Trash2, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
+import { Users, Plus, Copy, Target, BookOpen, Award, Trash2, CheckCircle2, Clock, TrendingUp, MicOff, Filter } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from 'recharts';
 import ParentNotificationsBell from '@/components/ParentNotificationsBell';
 import { notifyParentOfGoal } from '@/lib/notifyParents';
+
+// ---------- Activity log list with silent-mode filter ----------
+const isSilentManualLog = (activity_type: string) =>
+  activity_type === 'review' || activity_type === 'manual_memorization' || activity_type === 'memorization';
+
+const surahArName = (n: number | null) => (n ? `سورة ${n}` : '');
+
+interface ActivityLogListProps {
+  logs: ActivityLog[];
+  members: any[];
+  lang: 'ar' | 'en';
+}
+
+const ActivityLogList = ({ logs, members, lang }: ActivityLogListProps) => {
+  const [filter, setFilter] = useState<'all' | 'silent'>('all');
+  const filtered = filter === 'silent' ? logs.filter(l => isSilentManualLog(l.activity_type)) : logs;
+  const silentCount = logs.filter(l => isSilentManualLog(l.activity_type)).length;
+
+  const activityLabel = (t: string) => {
+    const map: Record<string, { ar: string; en: string }> = {
+      live_recitation: { ar: '🎤 تسميع مباشر', en: '🎤 Live recitation' },
+      review: { ar: '📖 حفظ يدوي صامت', en: '📖 Silent manual review' },
+      manual_memorization: { ar: '📖 حفظ يدوي صامت', en: '📖 Silent manual review' },
+      memorization: { ar: '📖 حفظ يدوي صامت', en: '📖 Silent manual review' },
+      quiz: { ar: '🧠 اختبار', en: '🧠 Quiz' },
+      recitation: { ar: '🎙️ تسجيل تلاوة', en: '🎙️ Recitation' },
+    };
+    return map[t]?.[lang] || t;
+  };
+
+  return (
+    <>
+      {/* Filter chips */}
+      <div className="flex items-center gap-2 mb-2">
+        <Filter size={12} className="text-muted-foreground shrink-0" />
+        <button
+          onClick={() => setFilter('all')}
+          className={`text-[11px] px-3 py-1 rounded-full font-medium transition-colors ${
+            filter === 'all'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-foreground hover:bg-muted/80'
+          }`}
+        >
+          {lang === 'ar' ? `الكل (${logs.length})` : `All (${logs.length})`}
+        </button>
+        <button
+          onClick={() => setFilter('silent')}
+          className={`text-[11px] px-3 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
+            filter === 'silent'
+              ? 'bg-emerald-600 text-white'
+              : 'bg-muted text-foreground hover:bg-muted/80'
+          }`}
+        >
+          <MicOff size={10} />
+          {lang === 'ar' ? `حفظ يدوي صامت (${silentCount})` : `Silent manual (${silentCount})`}
+        </button>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="text-center text-muted-foreground py-6 text-sm">
+          {filter === 'silent'
+            ? (lang === 'ar' ? 'لا توجد جلسات حفظ يدوي صامت بعد' : 'No silent manual sessions yet')
+            : (lang === 'ar' ? 'لا توجد أنشطة بعد' : 'No activity yet')}
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(log => {
+            const child = members.find(m => m.user_id === log.child_user_id);
+            const isSilent = isSilentManualLog(log.activity_type);
+            return (
+              <Card key={log.id} className={isSilent ? 'border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/10' : ''}>
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-semibold text-foreground">
+                          {child?.display_name}
+                        </p>
+                        <span className="text-xs text-muted-foreground">·</span>
+                        <span className="text-xs font-medium text-foreground">
+                          {activityLabel(log.activity_type)}
+                        </span>
+                        {isSilent && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-[9px] font-bold">
+                            <MicOff size={8} />
+                            {lang === 'ar' ? 'صامت' : 'silent'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                        {log.surah_number && <>{surahArName(log.surah_number)} · </>}
+                        <strong className="text-foreground">{log.verses_count}</strong>{' '}
+                        {lang === 'ar' ? 'آية مكشوفة' : 'verses revealed'}
+                        {' · '}
+                        {log.duration_minutes} {lang === 'ar' ? 'د' : 'min'}
+                        {' · '}
+                        {new Date(log.created_at).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </p>
+                      {isSilent && (
+                        <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">
+                          🔒 {lang === 'ar' ? 'لا توجد بيانات صوتية محفوظة' : 'No audio data stored'}
+                        </p>
+                      )}
+                    </div>
+                    <Badge className="shrink-0">{log.points_earned} pts</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+};
 
 interface FamilyGroup {
   id: string;
@@ -543,24 +661,7 @@ const FamilyPage = () => {
 
         {/* Activity */}
         <TabsContent value="activity" className="space-y-2 mt-4">
-          {logs.length === 0 ? (
-            <p className="text-center text-muted-foreground py-6">{lang === 'ar' ? 'لا توجد أنشطة بعد' : 'No activity yet'}</p>
-          ) : logs.map(log => {
-            const child = members.find(m => m.user_id === log.child_user_id);
-            return (
-              <Card key={log.id}>
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{child?.display_name} · {log.activity_type}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {log.verses_count} {lang === 'ar' ? 'آية' : 'verses'} · {log.duration_minutes} {lang === 'ar' ? 'دقيقة' : 'min'} · {new Date(log.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Badge>{log.points_earned} pts</Badge>
-                </CardContent>
-              </Card>
-            );
-          })}
+          <ActivityLogList logs={logs} members={members} lang={lang} />
         </TabsContent>
       </Tabs>
     </div>
