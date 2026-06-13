@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Loader2, Sparkles, AlertTriangle, CheckCircle2, ChevronDown, RotateCcw, Award, BookOpen } from 'lucide-react';
+import { Mic, MicOff, Loader2, Sparkles, AlertTriangle, CheckCircle2, ChevronDown, RotateCcw, Award, BookOpen, Columns3 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { surahs } from '@/data/surahs';
@@ -41,6 +41,52 @@ const severityHighlight = {
 const stripDiacritics = (s: string) =>
   s.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/[إأآا]/g, 'ا').trim();
 
+// Full normalizer: diacritics, alef/ya/ta/hamza unification, whitespace collapse
+const normalizeArFull = (s: string) =>
+  s
+    .replace(/[\u064B-\u0652\u0670\u0640]/g, '')
+    .replace(/[إأآا]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// Token-level alignment (LCS) between user transcript and the correct verse.
+// Returns an array of segments tagged as match | missing (in correct only) | extra (in user only).
+type AlignSeg = { type: 'match' | 'missing' | 'extra'; text: string };
+const alignToCorrect = (userText: string, correctText: string): AlignSeg[] => {
+  const u = normalizeArFull(userText).split(' ').filter(Boolean);
+  const c = normalizeArFull(correctText).split(' ').filter(Boolean);
+  const cOrig = correctText.split(/\s+/).filter(Boolean);
+  const uOrig = userText.split(/\s+/).filter(Boolean);
+  const n = u.length, m = c.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      dp[i][j] = u[i - 1] === c[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  const out: AlignSeg[] = [];
+  let i = n, j = m;
+  while (i > 0 && j > 0) {
+    if (u[i - 1] === c[j - 1]) {
+      out.push({ type: 'match', text: cOrig[j - 1] || c[j - 1] });
+      i--; j--;
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      out.push({ type: 'extra', text: uOrig[i - 1] || u[i - 1] });
+      i--;
+    } else {
+      out.push({ type: 'missing', text: cOrig[j - 1] || c[j - 1] });
+      j--;
+    }
+  }
+  while (i > 0) { out.push({ type: 'extra', text: uOrig[i - 1] || u[i - 1] }); i--; }
+  while (j > 0) { out.push({ type: 'missing', text: cOrig[j - 1] || c[j - 1] }); j--; }
+  return out.reverse();
+};
+
 const wordsMatch = (a: string, b: string) => {
   const na = stripDiacritics(a);
   const nb = stripDiacritics(b);
@@ -75,6 +121,7 @@ const TajweedChecker = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [report, setReport] = useState<TajweedReport | null>(null);
   const [expandedError, setExpandedError] = useState<number | null>(null);
+  const [showCompare, setShowCompare] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const currentSurah = surahs.find(s => s.id === selectedSurah);
@@ -327,12 +374,89 @@ const TajweedChecker = () => {
       {/* Transcript */}
       {transcript && (
         <div className="bg-muted/50 rounded-lg p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">
-            {lang === 'ar' ? 'تلاوتك:' : 'Your recitation:'}
-          </p>
+          <div className="flex items-center justify-between mb-1 gap-2">
+            <p className="text-[10px] text-muted-foreground">
+              {lang === 'ar' ? 'تلاوتك:' : 'Your recitation:'}
+            </p>
+            {currentVerseText && (
+              <button
+                onClick={() => setShowCompare(v => !v)}
+                className="text-[10px] px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 flex items-center gap-1 font-medium"
+              >
+                <Columns3 size={12} />
+                {showCompare
+                  ? (lang === 'ar' ? 'إخفاء المقارنة' : 'Hide compare')
+                  : (lang === 'ar' ? 'مقارنة ثلاثية' : 'Compare 3 views')}
+              </button>
+            )}
+          </div>
           <p className="font-quran text-sm text-foreground leading-loose text-right" dir="rtl">
             {transcript}
           </p>
+        </div>
+      )}
+
+      {/* 3-way comparison panel */}
+      {showCompare && transcript && currentVerseText && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 animate-fade-in">
+          {/* Original */}
+          <div className="bg-card border border-border rounded-lg p-3">
+            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+              {lang === 'ar' ? '1. النص الأصلي' : '1. Original transcript'}
+            </p>
+            <p className="font-quran text-sm leading-loose text-right" dir="rtl">
+              {transcript}
+            </p>
+          </div>
+          {/* Normalized */}
+          <div className="bg-card border border-accent/30 rounded-lg p-3">
+            <p className="text-[10px] font-semibold text-accent-foreground mb-1.5 uppercase tracking-wide">
+              {lang === 'ar' ? '2. النص المُطبَّع' : '2. Normalized'}
+            </p>
+            <p className="font-quran text-sm leading-loose text-right" dir="rtl">
+              {normalizeArFull(transcript)}
+            </p>
+            <p className="text-[9px] text-muted-foreground mt-2 leading-snug">
+              {lang === 'ar'
+                ? 'بدون تشكيل، توحيد ا/إ/أ/آ وي/ى وه/ة'
+                : 'No diacritics; unified alef/ya/ta forms'}
+            </p>
+          </div>
+          {/* Aligned */}
+          <div className="bg-card border border-primary/30 rounded-lg p-3">
+            <p className="text-[10px] font-semibold text-primary mb-1.5 uppercase tracking-wide">
+              {lang === 'ar' ? '3. مُحاذاة مع النص الصحيح' : '3. Aligned to correct'}
+            </p>
+            <p className="font-quran text-sm leading-loose text-right" dir="rtl">
+              {alignToCorrect(transcript, currentVerseText).map((seg, idx) => {
+                const cls =
+                  seg.type === 'match'
+                    ? 'text-foreground'
+                    : seg.type === 'missing'
+                    ? 'bg-destructive/15 text-destructive line-through decoration-destructive/60 rounded px-1 mx-0.5'
+                    : 'bg-accent/30 text-accent-foreground rounded px-1 mx-0.5';
+                return (
+                  <span key={idx} className={cls}>
+                    {seg.text}{' '}
+                  </span>
+                );
+              })}
+            </p>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className="text-[9px] text-muted-foreground">
+                {lang === 'ar' ? 'الدلالة:' : 'Legend:'}
+              </span>
+              <span className="text-[9px] text-foreground">
+                {lang === 'ar' ? 'صحيح' : 'match'}
+              </span>
+              <span className="text-[9px] px-1 rounded bg-destructive/15 text-destructive">
+                {lang === 'ar' ? 'ناقص' : 'missing'}
+              </span>
+              <span className="text-[9px] px-1 rounded bg-accent/30 text-accent-foreground">
+                {lang === 'ar' ? 'زائد' : 'extra'}
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
