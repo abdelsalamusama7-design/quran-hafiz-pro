@@ -158,8 +158,15 @@ const RecitationPage = () => {
   const handleQualityIssue = useCallback((q: AudioQuality) => {
     if (q === 'good' || q === 'idle') return;
     if (qualityDismissed) return;
-    // Only auto-restart on silent/noisy after a short countdown; low = warn only
-    if (q === 'silent' || q === 'noisy') {
+    // Only auto-restart when there's actual evidence of a bad capture:
+    //   • the session has been running long enough (>= 10s), AND
+    //   • very few finalized STT segments were produced (low yield).
+    // Pure background noise without a capture failure → just warn, don't restart.
+    const elapsedSec = (Date.now() - (sessionStartRef.current || Date.now())) / 1000;
+    const finalCount = finalizedIndicesRef.current.size;
+    const lowYield = elapsedSec >= 10 && (finalCount === 0 || elapsedSec / Math.max(finalCount, 1) > 8);
+
+    if ((q === 'silent' && elapsedSec >= 8) || (q === 'noisy' && lowYield)) {
       // Avoid stacking timers
       if (autoRestartTimerRef.current) return;
       let remaining = 6;
@@ -179,20 +186,112 @@ const RecitationPage = () => {
             }, 400);
             toast({
               title: lang === 'ar' ? '🔄 إعادة تسجيل تلقائية' : '🔄 Auto-restart',
-              description: lang === 'ar' ? 'تم إعادة تشغيل الميكروفون لتحسين جودة التسجيل.' : 'Mic restarted to improve quality.',
+              description: lang === 'ar'
+                ? `مقاطع منخفضة (${finalCount}) خلال ${Math.round(elapsedSec)}ث — أعدنا التسجيل.`
+                : `Low capture (${finalCount} segments in ${Math.round(elapsedSec)}s) — restarted.`,
             });
           }
         } else {
           setAutoRestartCountdown(remaining);
         }
       }, 1000);
+    } else if (q === 'noisy') {
+      // Noise without low yield → passive warning only, no restart
+      // (The AudioQualityAlert UI already reflects quality state.)
     }
+    // 'low' → AudioQualityAlert handles the warning UI; no restart.
   }, [qualityDismissed, cancelAutoRestart, lang, toast]);
+
+  // Load any saved mic-calibration thresholds (set once via the "Calibrate" button)
+  const calOverrides = (() => {
+    try {
+      const raw = localStorage.getItem('hafiz_mic_calibration');
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return {
+        silenceThreshold: typeof parsed.silenceThreshold === 'number' ? parsed.silenceThreshold : undefined,
+        lowThreshold: typeof parsed.lowThreshold === 'number' ? parsed.lowThreshold : undefined,
+      };
+    } catch { return {}; }
+  })();
 
   const audioQuality = useAudioQuality({
     active: isLiveListening && mode === 'live-listen',
     onIssue: handleQualityIssue,
+    ...calOverrides,
   });
+
+  // === Mic calibration (saves personalized sensitivity thresholds) ===
+  const [calibrating, setCalibrating] = useState(false);
+  const runMicCalibration = useCallback(async () => {
+    if (calibrating) return;
+    setCalibrating(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AC();
+      const src = ctx.createMediaStreamSource(stream);
+      const an = ctx.createAnalyser();
+      an.fftSize = 1024;
+      src.connect(an);
+      const buf = new Float32Array(an.fftSize);
+      const samples: number[] = [];
+      const start = performance.now();
+      const DURATION = 3500;
+      toast({
+        title: lang === 'ar' ? '🎚️ معايرة الميكروفون' : '🎚️ Calibrating mic',
+        description: lang === 'ar' ? 'اقرأ "بسم الله الرحمن الرحيم" بصوت طبيعي…' : 'Recite "Bismillah..." in your normal voice…',
+      });
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          an.getFloatTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+          samples.push(Math.sqrt(sum / buf.length));
+          if (performance.now() - start < DURATION) requestAnimationFrame(tick);
+          else resolve();
+        };
+        tick();
+      });
+      stream.getTracks().forEach(t => t.stop());
+      ctx.close().catch(() => {});
+
+      if (samples.length < 10) {
+        toast({ title: lang === 'ar' ? 'فشلت المعايرة' : 'Calibration failed', variant: 'destructive' });
+        return;
+      }
+      // Robust stats: noise floor = 20th percentile, voice level = 70th percentile
+      const sorted = [...samples].sort((a, b) => a - b);
+      const floor = sorted[Math.floor(sorted.length * 0.20)] || 0;
+      const voice = sorted[Math.floor(sorted.length * 0.70)] || 0;
+      // Derive thresholds with safety bounds. Silence ≈ 1.6× noise floor; low ≈ 40% of voice.
+      const silenceThreshold = Math.min(0.04, Math.max(0.005, floor * 1.6));
+      const lowThreshold = Math.min(0.10, Math.max(silenceThreshold * 1.8, voice * 0.40));
+      const payload = {
+        silenceThreshold: +silenceThreshold.toFixed(4),
+        lowThreshold: +lowThreshold.toFixed(4),
+        floor: +floor.toFixed(4),
+        voice: +voice.toFixed(4),
+        savedAt: Date.now(),
+      };
+      localStorage.setItem('hafiz_mic_calibration', JSON.stringify(payload));
+      toast({
+        title: lang === 'ar' ? '✅ تمت المعايرة' : '✅ Calibrated',
+        description: lang === 'ar'
+          ? `حُفظت الحساسية تلقائيًا (سكون ${payload.silenceThreshold} / منخفض ${payload.lowThreshold}).`
+          : `Sensitivity saved (silence ${payload.silenceThreshold} / low ${payload.lowThreshold}).`,
+      });
+    } catch {
+      toast({
+        title: lang === 'ar' ? 'لا يمكن الوصول للميكروفون' : 'Mic access denied',
+        variant: 'destructive',
+      });
+    } finally {
+      setCalibrating(false);
+    }
+  }, [calibrating, lang, toast]);
 
   // Reset dismissed flag + cancel pending restart whenever listening toggles
   useEffect(() => {
@@ -1201,6 +1300,22 @@ const RecitationPage = () => {
               </div>
               {isProcessing && <Loader2 size={14} className="text-primary animate-spin" />}
             </div>
+          )}
+
+          {!isLiveListening && mode === 'live-listen' && (
+            <button
+              onClick={runMicCalibration}
+              disabled={calibrating}
+              className="self-start text-[11px] px-3 py-1.5 rounded-full bg-card border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-50 flex items-center gap-1.5 font-medium"
+              title={lang === 'ar' ? 'معايرة سريعة لتقليل الإنذارات الكاذبة' : 'Quick calibration to reduce false alarms'}
+            >
+              {calibrating
+                ? <Loader2 size={12} className="animate-spin" />
+                : <span>🎚️</span>}
+              {calibrating
+                ? (lang === 'ar' ? 'جارٍ المعايرة…' : 'Calibrating…')
+                : (lang === 'ar' ? 'معايرة الميكروفون' : 'Calibrate mic')}
+            </button>
           )}
 
           {isLiveListening && mode === 'live-listen' && (
