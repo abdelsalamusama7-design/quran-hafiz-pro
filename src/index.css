@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,7 +7,7 @@
 @layer base {
   :root {
     --quran-font-size: 18px;
-    --background: 40 33% 96%;
+    --background: 43 38% 95%;
     --foreground: 150 20% 15%;
 
     --card: 0 0% 100%;
@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 150 20% 15%;
 
-    --primary: 153 40% 28%;
+    --primary: 154 65% 18%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 40 35% 92%;
@@ -25,7 +25,7 @@
     --muted: 40 20% 93%;
     --muted-foreground: 150 10% 45%;
 
-    --accent: 43 70% 55%;
+    --accent: 46 65% 53%;
     --accent-foreground: 150 20% 12%;
 
     --destructive: 0 65% 50%;
@@ -33,15 +33,15 @@
 
     --border: 40 20% 90%;
     --input: 40 20% 90%;
-    --ring: 153 40% 28%;
+    --ring: 154 65% 18%;
 
     --radius: 0.75rem;
 
-    --gold: 43 70% 55%;
+    --gold: 46 65% 53%;
     --gold-light: 43 60% 92%;
-    --emerald: 153 40% 28%;
+    --emerald: 154 65% 18%;
     --emerald-light: 153 30% 93%;
-    --cream: 40 33% 96%;
+    --cream: 43 38% 95%;
     --warm-white: 0 0% 100%;
 
     --kids-purple: 270 60% 50%;
