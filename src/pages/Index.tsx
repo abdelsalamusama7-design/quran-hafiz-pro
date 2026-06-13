@@ -4,82 +4,11 @@ import StatsCards from '@/components/StatsCards';
 import SurahCard from '@/components/SurahCard';
 import { surahs } from '@/data/surahs';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, MessageCircle, Sparkles, EyeOff, Zap, Hand, Save, Search, Headphones, ChevronLeft } from 'lucide-react';
+import { BookOpen, Mic, GraduationCap, HelpCircle, Trophy, BookCheck, Bot, BarChart3, Settings, Baby, Users, Home as HomeIcon, Sparkles, EyeOff, Zap, Hand, Save, Search, Headphones, ChevronLeft } from 'lucide-react';
 
 const HomePage = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
-
-  // Recitation modes — surfaced on the home page so users discover them immediately
-  const recitationModes = [
-    {
-      id: 'live-listen',
-      icon: MessageCircle,
-      labelAr: 'تسميع مباشر',
-      labelEn: 'Live Listen',
-      descAr: 'شيخ AI يسمعلك ويصحح فوراً',
-      descEn: 'AI sheikh listens & corrects live',
-      gradient: 'from-emerald-500 to-teal-600',
-      ring: 'ring-emerald-400/30',
-    },
-    {
-      id: 'auto-detect',
-      icon: Sparkles,
-      labelAr: 'اقرأ وأنا أتابعك',
-      labelEn: 'Auto Detect',
-      descAr: 'اقرأ أي آية وسأحددها تلقائياً',
-      descEn: "Read any verse, I'll identify it",
-      gradient: 'from-violet-500 to-purple-600',
-      ring: 'ring-violet-400/30',
-    },
-    {
-      id: 'correct',
-      icon: Mic,
-      labelAr: 'تصحيح التلاوة',
-      labelEn: 'Correction',
-      descAr: 'اختر آية وسجّل تلاوتك',
-      descEn: 'Pick a verse and record',
-      gradient: 'from-rose-500 to-pink-600',
-      ring: 'ring-rose-400/30',
-    },
-    {
-      id: 'blind',
-      icon: EyeOff,
-      labelAr: 'حفظ بدون نظر',
-      labelEn: 'Blind Mode',
-      descAr: 'اختبر حفظك بدون النص',
-      descEn: 'Test memorization without text',
-      gradient: 'from-amber-500 to-orange-600',
-      ring: 'ring-amber-400/30',
-    },
-    {
-      id: 'practice',
-      icon: Zap,
-      labelAr: 'وضع التمرين',
-      labelEn: 'Practice',
-      descAr: 'تدرب على سورة كاملة',
-      descEn: 'Practice a full surah',
-      gradient: 'from-blue-500 to-indigo-600',
-      ring: 'ring-blue-400/30',
-    },
-  ];
-
-  const quickActions = [
-    { icon: BookOpen, label: lang === 'ar' ? 'القرآن الكريم' : 'Quran', action: () => navigate('/quran'), gradient: 'from-emerald-500 to-teal-600', ring: 'ring-emerald-400/30' },
-    { icon: Hand, label: lang === 'ar' ? 'الحفظ اليدوي' : 'Manual Memorization', action: () => navigate('/manual-memorization'), gradient: 'from-lime-500 to-green-600', ring: 'ring-lime-400/30' },
-    { icon: Save, label: lang === 'ar' ? 'سجّل وراجع' : 'Record & Review', action: () => navigate('/record-review'), gradient: 'from-red-500 to-rose-600', ring: 'ring-red-400/30' },
-    { icon: Mic, label: lang === 'ar' ? 'تصحيح التلاوة' : 'Recitation', action: () => navigate('/recitation'), gradient: 'from-rose-500 to-pink-600', ring: 'ring-rose-400/30' },
-    { icon: HelpCircle, label: t('quiz'), action: () => navigate('/quiz'), gradient: 'from-blue-500 to-indigo-600', ring: 'ring-blue-400/30' },
-    { icon: GraduationCap, label: lang === 'ar' ? 'التجويد' : 'Tajweed', action: () => navigate('/tajweed'), gradient: 'from-amber-500 to-orange-600', ring: 'ring-amber-400/30' },
-    { icon: Bot, label: lang === 'ar' ? 'الشيخ AI' : 'AI Tutor', action: () => navigate('/ai-tutor'), gradient: 'from-violet-500 to-purple-600', ring: 'ring-violet-400/30' },
-    { icon: BookCheck, label: lang === 'ar' ? 'الورد اليومي' : 'Daily Wird', action: () => navigate('/daily-wird'), gradient: 'from-cyan-500 to-sky-600', ring: 'ring-cyan-400/30' },
-    { icon: Trophy, label: lang === 'ar' ? 'الإنجازات' : 'Badges', action: () => navigate('/badges'), gradient: 'from-yellow-500 to-amber-600', ring: 'ring-yellow-400/30' },
-    { icon: BarChart3, label: lang === 'ar' ? 'التقدم' : 'Progress', action: () => navigate('/progress'), gradient: 'from-fuchsia-500 to-pink-600', ring: 'ring-fuchsia-400/30' },
-    { icon: Baby, label: lang === 'ar' ? 'وضع الأطفال' : 'Kids Mode', action: () => navigate('/kids'), gradient: 'from-pink-500 to-rose-600', ring: 'ring-pink-400/30' },
-    { icon: Users, label: lang === 'ar' ? 'المجتمع' : 'Community', action: () => navigate('/community'), gradient: 'from-teal-500 to-emerald-600', ring: 'ring-teal-400/30' },
-    { icon: HomeIcon, label: lang === 'ar' ? 'العائلة' : 'Family', action: () => navigate('/family'), gradient: 'from-orange-500 to-red-600', ring: 'ring-orange-400/30' },
-    { icon: Settings, label: lang === 'ar' ? 'الإعدادات' : 'Settings', action: () => navigate('/settings'), gradient: 'from-slate-500 to-slate-700', ring: 'ring-slate-400/30' },
-  ];
 
   // ========= ALL service buttons (each with a clear, friendly Arabic/English usage tip) =========
   // Grouped into 3 categories so the home page reads as a clear, browseable directory.
