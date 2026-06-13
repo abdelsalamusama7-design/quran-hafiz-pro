@@ -1303,6 +1303,10 @@ const RecitationPage = () => {
           )}
 
           {!isLiveListening && mode === 'live-listen' && (
+            <PreSessionChecklist lang={lang} />
+          )}
+
+          {!isLiveListening && mode === 'live-listen' && (
             <button
               onClick={runMicCalibration}
               disabled={calibrating}
