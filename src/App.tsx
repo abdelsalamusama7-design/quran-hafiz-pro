@@ -31,6 +31,7 @@ import RecordReviewPage from "./pages/RecordReviewPage";
 import SearchPage from "./pages/SearchPage";
 import MushafTafsirPage from "./pages/MushafTafsirPage";
 import PrayerTimesPage from "./pages/PrayerTimesPage";
+import AdhanPage from "./pages/AdhanPage";
 import NotFound from "./pages/NotFound";
 import { useActivitySync } from "@/hooks/useActivitySync";
 
@@ -72,7 +73,7 @@ const App = () => (
               <Route path="/search" element={<SearchPage />} />
               <Route path="/mushaf-tafsir" element={<MushafTafsirPage />} />
               <Route path="/prayer-times" element={<PrayerTimesPage />} />
-              <Route path="/adhan" element={<PrayerTimesPage />} />
+              <Route path="/adhan" element={<AdhanPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AudioPlayer />
