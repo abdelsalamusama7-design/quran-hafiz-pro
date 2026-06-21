@@ -31,7 +31,7 @@ const StickyStartBar = ({
 }: StickyStartBarProps) => {
   return (
     <div className="sticky top-2 z-30 -mx-1">
-      <div className="bg-background/85 backdrop-blur-md rounded-2xl p-2 shadow-lg border border-border/50">
+      <div className="bg-background rounded-2xl p-2 shadow-lg border border-border/50 [transform:translateZ(0)]">
         <button
           onClick={() => { if (active) onStop(); else onStart(); }}
           disabled={disabled}
