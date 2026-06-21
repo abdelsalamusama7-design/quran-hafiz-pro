@@ -18,7 +18,7 @@ const BottomNav = () => {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 safe-area-bottom">
       <div className="max-w-lg mx-auto">
-        <div className="mx-2 mb-2 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg">
+        <div className="mx-2 mb-2 bg-card border border-border/50 rounded-2xl shadow-lg [transform:translateZ(0)] [will-change:transform]">
           <div className="flex items-center justify-around h-14 md:h-16">
             {tabs.map(({ path, icon: Icon, label }) => {
               const isActive = location.pathname === path;
