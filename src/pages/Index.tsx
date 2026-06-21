@@ -123,13 +123,13 @@ const HomePage = () => {
   return (
     <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className="min-h-screen bg-emerald-950 text-white pb-32"
+      className="relative isolate min-h-screen bg-emerald-950 text-white pb-32 overflow-x-hidden"
       style={{ fontFamily: 'Cairo, system-ui, sans-serif' }}
     >
       {/* Decorative gradient backdrop */}
-      <div className="absolute inset-x-0 top-0 h-[420px] overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -right-24 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl" />
-        <div className="absolute -top-24 -left-24 w-72 h-72 bg-emerald-400/10 rounded-full blur-3xl" />
+      <div className="absolute inset-x-0 top-0 h-[360px] overflow-hidden pointer-events-none -z-10">
+        <div className="absolute -top-24 -right-16 w-60 h-60 bg-amber-400/10 rounded-full blur-2xl" />
+        <div className="absolute -top-16 -left-16 w-60 h-60 bg-emerald-400/10 rounded-full blur-2xl" />
       </div>
 
       <div className="relative mx-auto max-w-md sm:max-w-2xl lg:max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -172,8 +172,8 @@ const HomePage = () => {
         {/* ============== HERO PROGRESS CARD ============== */}
         <section className="mt-3">
           <div className="relative rounded-3xl overflow-hidden border border-emerald-700/50 bg-gradient-to-br from-emerald-800 to-emerald-900 p-5 sm:p-6 shadow-2xl shadow-emerald-950/60">
-            <div className="absolute -left-12 -top-12 w-44 h-44 bg-amber-400/10 rounded-full blur-3xl" />
-            <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-emerald-400/10 rounded-full blur-3xl" />
+            <div className="absolute -left-12 -top-12 w-40 h-40 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
 
             <div className="relative z-10 flex items-end justify-between gap-4">
               <div className="space-y-2 min-w-0">
